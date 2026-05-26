@@ -197,6 +197,17 @@ async def run_ingestion(req: IngestionRunRequest):
         quality_threshold=cfg.data_infra.get("cleaning", {}).get("quality_threshold", 0.95),
     )
 
+    # Resolve connector and capture schema BEFORE pipeline run
+    # (pipeline.disconnect() might invalidate connector state)
+    connector = registry.get(source_name)
+    schema: dict[str, str] = {}
+    if connector:
+        try:
+            await connector.connect()
+            schema = await connector.schema(table)
+        except Exception:
+            pass
+
     pipeline = IngestionPipeline(
         registry, validator=validator, transformer=transformer,
         quality_checker=quality, lineage=get_lineage(),
@@ -208,6 +219,39 @@ async def run_ingestion(req: IngestionRunRequest):
             batch_size=req.batch_size, target_format=req.target_format,
             partition_cols=req.partition_cols,
         )
+
+        # Auto-register in catalog after successful ingestion
+        dataset_name = f"{req.source_name}/{req.table}"
+        columns = [
+            ColumnMeta(name=col_name, dtype=col_type)
+            for col_name, col_type in schema.items()
+        ]
+        if not columns:
+            # Fallback: infer basic columns from report
+            columns = [
+                ColumnMeta(name="rows_read", dtype="int32"),
+                ColumnMeta(name="rows_written", dtype="int32"),
+            ]
+
+        tags = [req.source_name]
+        if "pubchem" in req.source_name.lower():
+            tags.extend(["chemistry", "molecule"])
+
+        catalog = get_catalog()
+        entry = DatasetEntry(
+            name=dataset_name,
+            description=f"Ingested from {req.source_name}: {req.table}",
+            owner="system",
+            columns=columns,
+            location=req.target_path,
+            format=req.target_format,
+            tags=tags,
+            row_count_estimate=report.rows_written,
+            quality_score=report.pass_rate,
+        )
+        catalog.register(entry)
+        logger.info("Auto-registered dataset '%s' in catalog (%d columns)", dataset_name, len(columns))
+
         return {
             "status": report.status,
             "rows_read": report.rows_read,
