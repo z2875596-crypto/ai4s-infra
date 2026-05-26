@@ -1,0 +1,99 @@
+# === AI4S Infrastructure Global Settings ===
+
+data_infra:
+  ingestion:
+    batch_size: 10000
+    parallelism: 4
+    retry_max: 3
+    retry_backoff_sec: 5
+    sources:
+      - name: s3_primary
+        type: s3
+        bucket: ai4s-data-lake
+        region: us-east-1
+      - name: pg_research
+        type: postgresql
+        host: localhost
+        port: 5432
+
+  cleaning:
+    validation_mode: warn         # strict | warn | skip
+    schema_registry_path: /data/schemas
+    quality_threshold: 0.95
+    max_null_ratio: 0.10
+
+  pubchem:
+    timeout: 30
+    max_records: 100
+    verify_ssl: false
+    properties:
+      - MolecularFormula
+      - MolecularWeight
+      - CanonicalSMILES
+      - InChI
+      - InChIKey
+      - IUPACName
+      - XLogP
+      - TPSA
+
+  versioning:
+    backend: lakefs                # lakefs | delta | iceberg
+    snapshot_interval_hours: 6
+    retention_days: 90
+
+rlhf:
+  reward_model:
+    base_model: meta-llama/Llama-2-7b-hf
+    sequence_length: 2048
+    train_batch_size: 32
+    learning_rate: 1.0e-5
+
+  policy:
+    algorithm: ppo                 # ppo | dpo | grpo
+    ppo_epochs: 4
+    kl_penalty_coef: 0.1
+    value_loss_coef: 0.5
+
+  feedback:
+    annotation_pool_size: 1000
+    agreement_threshold: 0.7
+    active_learning: true
+
+agent_runtime:
+  scheduler:
+    queue_backend: redis
+    max_concurrent_agents: 100
+    task_timeout_sec: 3600
+    routing_strategy: round_robin  # round_robin | least_busy | priority
+
+  tools:
+    sandbox_type: gvisor           # gvisor | firecracker | docker
+    max_tool_timeout_sec: 300
+    allowed_network: isolated
+
+  memory:
+    backend: weaviate              # weaviate | chromadb | qdrant
+    embedding_model: text-embedding-3-small
+    chunk_size: 512
+    chunk_overlap: 64
+    max_context_tokens: 128000
+
+hpc_fusion:
+  scheduler:
+    engine: slurm                  # slurm | volcano | custom
+    scheduling_policy: fair_share
+    preemption: true
+    backfill: true
+
+  monitor:
+    metrics_interval_sec: 10
+    prometheus_port: 9090
+    alert_channels: [slack, pagerduty]
+
+  connectors:
+    slurm:
+      version: "23.11"
+      accounting_api: http://slurm-ctld:6820
+    kubernetes:
+      context: ai4s-cluster
+      namespace: ai4s-compute

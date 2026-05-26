@@ -1,0 +1,298 @@
+# =============================================================================
+# AI4S Infrastructure — docker-compose deployment
+# =============================================================================
+#
+# Services:
+#   ai4s          — Unified FastAPI server (all 4 modules)
+#   redis         — Task queue backend (agent_runtime) + general cache
+#   postgres      — Metadata store (data catalog, lineage, feedback)
+#   weaviate      — Vector DB for agent memory
+#   prometheus    — Metrics collection
+#   grafana       — Dashboards
+#
+# Usage:
+#   docker-compose up -d              # start all services
+#   docker-compose up -d ai4s redis   # start specific services
+#   docker-compose logs -f ai4s       # tail logs
+#   docker-compose down -v            # tear down (including volumes)
+# =============================================================================
+
+version: "3.9"
+
+# ── Volumes ───────────────────────────────────────────────────────────────
+
+volumes:
+  redis_data:
+  postgres_data:
+  weaviate_data:
+  prometheus_data:
+  grafana_data:
+
+# ── Networks ──────────────────────────────────────────────────────────────
+
+networks:
+  ai4s-net:
+    driver: bridge
+
+# ── Services ──────────────────────────────────────────────────────────────
+
+services:
+
+  # =========================================================================
+  #  AI4S Unified Server
+  # =========================================================================
+  ai4s:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.data
+    container_name: ai4s-server
+    ports:
+      - "8000:8000"
+    environment:
+      # Logging
+      - AI4S_COMMON__LOG_LEVEL=info
+      # Redis
+      - AI4S_AGENT_RUNTIME__SCHEDULER__QUEUE_BACKEND=redis://redis:6379
+      # PostgreSQL
+      - AI4S_DATA_INFRA__INGESTION__SOURCES__1__TYPE=postgresql
+      - AI4S_DATA_INFRA__INGESTION__SOURCES__1__HOST=postgres
+      - AI4S_DATA_INFRA__INGESTION__SOURCES__1__PORT=5432
+      # Weaviate
+      - AI4S_AGENT_RUNTIME__MEMORY__BACKEND=weaviate
+      # RLHF
+      - AI4S_RLHF__POLICY__ALGORITHM=dpo
+      # HPC
+      - AI4S_HPC_FUSION__SCHEDULER__ENGINE=slurm
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      weaviate:
+        condition: service_started
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "ai4s.module=data_infra,rlhf,agent_runtime,hpc_fusion"
+
+  # =========================================================================
+  #  Redis — task queue + cache
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: ai4s-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # =========================================================================
+  #  PostgreSQL — metadata, catalog, lineage, feedback storage
+  # =========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai4s-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ai4s
+      POSTGRES_PASSWORD: ai4s_secret
+      POSTGRES_DB: ai4s_metadata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai4s -d ai4s_metadata"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  #  Weaviate — vector database for agent memory
+  # =========================================================================
+  weaviate:
+    image: semitechnologies/weaviate:1.24
+    container_name: ai4s-weaviate
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      DEFAULT_VECTORIZER_MODULE: "none"
+      ENABLE_MODULES: ""
+      CLUSTER_HOSTNAME: "node1"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  #  Prometheus — metrics collection
+  # =========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ai4s-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # =========================================================================
+  #  Grafana — monitoring dashboards
+  # =========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ai4s-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # =========================================================================
+  #  Optional: data-infra worker (standalone ingestion pipeline)
+  # =========================================================================
+  data-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.data
+    container_name: ai4s-data-worker
+    command: ["python", "-m", "ai4s.data_infra.ingestion.pipeline"]
+    environment:
+      - AI4S_DATA_INFRA__INGESTION__BATCH_SIZE=10000
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    profiles:
+      - worker
+      - full
+
+  # =========================================================================
+  #  Optional: RLHF worker
+  # =========================================================================
+  rlhf-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.rlhf
+    container_name: ai4s-rlhf-worker
+    command: ["python", "-m", "ai4s.rlhf.pipeline"]
+    environment:
+      - AI4S_RLHF__POLICY__ALGORITHM=dpo
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - redis
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    profiles:
+      - worker
+      - gpu
+      - full
+
+  # =========================================================================
+  #  Optional: agent worker
+  # =========================================================================
+  agent-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.agent
+    container_name: ai4s-agent-worker
+    command: ["python", "-m", "ai4s.agent_runtime.orchestration"]
+    environment:
+      - AI4S_AGENT_RUNTIME__SCHEDULER__QUEUE_BACKEND=redis://redis:6379
+      - AI4S_AGENT_RUNTIME__MEMORY__BACKEND=weaviate
+    depends_on:
+      - redis
+      - weaviate
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    profiles:
+      - worker
+      - full
+
+  # =========================================================================
+  #  Optional: HPC sidecar scheduler
+  # =========================================================================
+  hpc-scheduler:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.hpc
+    container_name: ai4s-hpc-scheduler
+    command: ["python", "-m", "ai4s.hpc_fusion.scheduler.engine"]
+    environment:
+      - AI4S_HPC_FUSION__SCHEDULER__ENGINE=slurm
+    depends_on:
+      - redis
+    networks:
+      - ai4s-net
+    restart: unless-stopped
+    profiles:
+      - worker
+      - full

@@ -1,0 +1,57 @@
+# Prometheus configuration for AI4S Infrastructure
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: ai4s
+    environment: production
+
+# Alerting — replace with your Alertmanager URL
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ["alertmanager:9093"]
+
+rule_files: []
+
+scrape_configs:
+  # AI4S unified server metrics
+  - job_name: ai4s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ai4s:8000
+        labels:
+          service: ai4s
+          module: all
+
+  # Redis
+  - job_name: redis
+    static_configs:
+      - targets:
+          - redis:6379
+        labels:
+          service: redis
+
+  # PostgreSQL
+  - job_name: postgres
+    static_configs:
+      - targets:
+          - postgres:5432
+        labels:
+          service: postgres
+
+  # Weaviate
+  - job_name: weaviate
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - weaviate:8080
+        labels:
+          service: weaviate
+
+  # Self
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
