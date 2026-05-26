@@ -26,7 +26,8 @@ PUBCHEM_BASE = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
 DEFAULT_PROPERTIES = [
     "MolecularFormula",
     "MolecularWeight",
-    "CanonicalSMILES",
+    "SMILES",
+    "IsomericSMILES",
     "InChI",
     "InChIKey",
     "IUPACName",
@@ -129,7 +130,7 @@ class PubChemConnector(DataConnector):
         type_map = {
             "MolecularFormula": "string",
             "MolecularWeight": "float64",
-            "CanonicalSMILES": "string",
+            "SMILES": "string",
             "InChI": "string",
             "InChIKey": "string",
             "IUPACName": "string",

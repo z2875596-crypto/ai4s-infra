@@ -180,7 +180,7 @@ async def run_ingestion(req: IngestionRunRequest):
             "timeout": pubchem_cfg.get("timeout", 30),
             "verify_ssl": pubchem_cfg.get("verify_ssl", False),
             "properties": pubchem_cfg.get("properties", [
-                "MolecularFormula", "MolecularWeight", "CanonicalSMILES",
+                "MolecularFormula", "MolecularWeight", "SMILES",
                 "InChI", "InChIKey", "IUPACName", "XLogP", "TPSA",
             ]),
         }
@@ -379,7 +379,7 @@ async def pubchem_search(
         "verify_ssl": pubchem_cfg.get("verify_ssl", False),
         "properties": pubchem_cfg.get(
             "properties",
-            ["MolecularFormula", "MolecularWeight", "CanonicalSMILES", "InChI",
+            ["MolecularFormula", "MolecularWeight", "SMILES", "InChI",
              "InChIKey", "IUPACName", "XLogP", "TPSA"],
         ),
     })
@@ -404,7 +404,7 @@ async def pubchem_get_by_cid(cid: int):
         "verify_ssl": pubchem_cfg.get("verify_ssl", False),
         "properties": pubchem_cfg.get(
             "properties",
-            ["MolecularFormula", "MolecularWeight", "CanonicalSMILES", "InChI",
+            ["MolecularFormula", "MolecularWeight", "SMILES", "InChI",
              "InChIKey", "IUPACName", "XLogP", "TPSA"],
         ),
     })
@@ -437,7 +437,7 @@ async def pubchem_ingest(
         "max_records": max_records,
         "properties": cfg.data_infra.get("pubchem", {}).get(
             "properties",
-            ["MolecularFormula", "MolecularWeight", "CanonicalSMILES", "InChI",
+            ["MolecularFormula", "MolecularWeight", "SMILES", "InChI",
              "InChIKey", "IUPACName", "XLogP", "TPSA"],
         ),
     })
@@ -468,6 +468,29 @@ async def pubchem_ingest(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# prediction routes
+# ---------------------------------------------------------------------------
+
+
+class PredictRequest(BaseModel):
+    smiles: str = Field(..., description="SMILES string of the molecule")
+
+
+@router.post("/predict")
+async def predict_molecule(req: PredictRequest):
+    """Predict molecular properties from a SMILES string using RDKit."""
+    try:
+        from ai4s.data_infra.prediction import predict_properties
+    except ImportError as e:
+        raise HTTPException(status_code=501, detail=f"RDKit not available: {e}")
+
+    result = predict_properties(req.smiles)
+    if not result.get("valid"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Invalid SMILES"))
+    return result
 
 
 # ---------------------------------------------------------------------------

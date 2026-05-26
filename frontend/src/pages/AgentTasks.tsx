@@ -3,9 +3,10 @@ import { agentAPI } from "@/api/client";
 import type { AgentSummary, QueueStats, MemoryEntry, MemoryStats } from "@/types";
 import StatCard from "@/components/StatCard";
 import StatusBadge from "@/components/StatusBadge";
-import { Send, Brain, Search, Plus, Zap, Play } from "lucide-react";
+import { Send, Brain, Search, Plus, Zap, Play, BookOpen } from "lucide-react";
+import type { LiteratureResult } from "@/types";
 
-type Tab = "tasks" | "agents" | "tools" | "memory";
+type Tab = "tasks" | "agents" | "tools" | "memory" | "literature";
 
 export default function AgentTasks() {
   const [tab, setTab] = useState<Tab>("tasks");
@@ -18,7 +19,7 @@ export default function AgentTasks() {
       </div>
 
       <div className="flex gap-1 mb-6 border-b border-white/5 pb-0">
-        {(["tasks", "agents", "tools", "memory"] as const).map((t) => (
+        {(["tasks", "agents", "tools", "memory", "literature"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -26,7 +27,7 @@ export default function AgentTasks() {
               tab === t ? "bg-accent/15 text-accent-light border-b-2 border-accent" : "text-gray-400 hover:text-gray-200"
             }`}
           >
-            {t === "tasks" ? "Tasks" : t === "agents" ? "Agents" : t === "tools" ? "Tools" : "Memory"}
+            {t === "tasks" ? "Tasks" : t === "agents" ? "Agents" : t === "tools" ? "Tools" : t === "memory" ? "Memory" : "Literature"}
           </button>
         ))}
       </div>
@@ -35,6 +36,7 @@ export default function AgentTasks() {
       {tab === "agents" && <AgentsTab />}
       {tab === "tools" && <ToolsTab />}
       {tab === "memory" && <MemoryTab />}
+      {tab === "literature" && <LiteratureTab />}
     </div>
   );
 }
@@ -285,6 +287,160 @@ function MemoryTab() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Literature Tab ─────────────────────────────────────────
+
+function LiteratureTab() {
+  const [query, setQuery] = useState("");
+  const [limit, setLimit] = useState("10");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<LiteratureResult | null>(null);
+  const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const search = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await agentAPI.literatureSearch(query.trim(), parseInt(limit) || 10);
+      setResult(res);
+      setExpanded(new Set());
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleAbstract = (paperId: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(paperId)) next.delete(paperId);
+      else next.add(paperId);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Search form */}
+      <div className="bg-surface-light rounded-xl border border-white/5 p-5">
+        <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <BookOpen className="w-4 h-4 text-accent" /> Chemical Literature Search
+        </h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Search papers from Semantic Scholar. Try keywords like "metal organic framework", "perovskite solar cell", "catalyst design".
+        </p>
+        <div className="flex gap-2">
+          <input
+            className="flex-1 bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+            placeholder="Search keywords..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && search()}
+          />
+          <select
+            className="w-20 bg-surface border border-white/10 rounded-lg px-2 py-2 text-sm"
+            value={limit}
+            onChange={(e) => setLimit(e.target.value)}
+          >
+            {[5, 10, 20, 50].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <button
+            onClick={search}
+            disabled={loading}
+            className="flex items-center gap-1.5 bg-accent hover:bg-accent-dark px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <Search className="w-4 h-4" />
+            {loading ? "Searching..." : "Search"}
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {["metal organic framework", "perovskite solar cell", "catalyst design", "drug discovery AI", "green synthesis"].map((kw) => (
+            <button
+              key={kw}
+              type="button"
+              onClick={() => setQuery(kw)}
+              className="px-2 py-1 text-xs rounded bg-accent/10 text-accent-light hover:bg-accent/20 transition-colors"
+            >
+              {kw}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-400">{error}</div>
+      )}
+
+      {/* Results */}
+      {result && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">
+              Results for "<span className="text-accent-light">{result.query}</span>"
+              <span className="text-gray-500 ml-2">({result.total.toLocaleString()} total, showing {result.count})</span>
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {result.papers.map((paper, idx) => (
+              <div key={paper.paperId} className="bg-surface-light rounded-xl border border-white/5 p-4 hover:border-white/10 transition-colors">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold leading-snug">
+                      <span className="text-gray-500 mr-2">#{idx + 1}</span>
+                      {paper.url ? (
+                        <a href={paper.url} target="_blank" rel="noopener noreferrer" className="hover:text-accent-light transition-colors">
+                          {paper.title}
+                        </a>
+                      ) : paper.title}
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-400">
+                      {paper.authors.length > 0 && (
+                        <span>{paper.authors.slice(0, 3).join(", ")}{paper.authors.length > 3 ? ` et al.` : ""}</span>
+                      )}
+                      {paper.year && <span className="text-gray-500">{paper.year}</span>}
+                      {paper.venue && <span className="text-gray-500">{paper.venue}</span>}
+                      {paper.doi && (
+                        <a
+                          href={`https://doi.org/${paper.doi}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-accent-light hover:underline"
+                        >
+                          DOI: {paper.doi}
+                        </a>
+                      )}
+                      <span>Cited: {paper.citationCount}</span>
+                    </div>
+                  </div>
+                  {paper.abstract && (
+                    <button
+                      onClick={() => toggleAbstract(paper.paperId)}
+                      className="shrink-0 text-xs text-accent-light hover:text-accent transition-colors mt-0.5"
+                    >
+                      {expanded.has(paper.paperId) ? "Hide" : "Abstract"}
+                    </button>
+                  )}
+                </div>
+                {expanded.has(paper.paperId) && paper.abstract && (
+                  <p className="mt-2 text-xs text-gray-400 leading-relaxed bg-surface rounded-lg p-3">{paper.abstract}</p>
+                )}
+              </div>
+            ))}
+          </div>
+          {result.papers.length === 0 && (
+            <p className="text-sm text-gray-500 text-center py-8">No papers found. Try different keywords.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

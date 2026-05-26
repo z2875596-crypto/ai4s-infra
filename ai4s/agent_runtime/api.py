@@ -12,6 +12,10 @@ from ai4s.common.logging import get_logger
 from ai4s.agent_runtime.orchestration import AgentOrchestrator
 from ai4s.agent_runtime.scheduler.queue import TaskPriority
 from ai4s.agent_runtime.tools.registry import ToolDefinition
+from ai4s.agent_runtime.tools.literature_search import (
+    literature_search_handler,
+    search_semantic_scholar,
+)
 
 logger = get_logger(__name__)
 
@@ -26,7 +30,33 @@ def get_orchestrator() -> AgentOrchestrator:
     global _orchestrator
     if _orchestrator is None:
         _orchestrator = AgentOrchestrator(Config())
+        # Register built-in literature search tool
+        _orchestrator.register_tool(ToolDefinition(
+            name="literature_search",
+            description="Search chemical literature via Semantic Scholar API. Returns paper titles, authors, year, abstract, DOI.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Search keywords"},
+                    "limit": {"type": "integer", "description": "Max papers to return", "default": 10},
+                    "year_from": {"type": "string", "description": "Filter from year"},
+                    "year_to": {"type": "string", "description": "Filter to year"},
+                },
+                "required": ["query"],
+            },
+            handler=literature_search_handler,
+            category="chemistry",
+            timeout_sec=60,
+            requires_sandbox=False,
+        ))
+        # Register literature agent handler
+        _orchestrator.register_handler("literature", _literature_task_handler)
     return _orchestrator
+
+
+async def _literature_task_handler(task: Any) -> dict[str, Any]:
+    """Handle literature search tasks submitted via the task queue."""
+    return await literature_search_handler(task.payload)
 
 
 # ---------------------------------------------------------------------------
@@ -268,3 +298,30 @@ async def compress_old_memories(days: int = 30):
 async def orchestrator_status():
     orch = get_orchestrator()
     return await orch.status()
+
+
+# ---------------------------------------------------------------------------
+# literature search routes
+# ---------------------------------------------------------------------------
+
+
+class LiteratureSearchRequest(BaseModel):
+    query: str = Field(..., description="Search keywords")
+    limit: int = Field(10, ge=1, le=100, description="Max papers to return")
+    year_from: str | None = None
+    year_to: str | None = None
+
+
+@router.post("/literature/search")
+async def literature_search(req: LiteratureSearchRequest):
+    """Search chemical literature via Semantic Scholar API."""
+    try:
+        result = await search_semantic_scholar(
+            query=req.query,
+            limit=req.limit,
+            year_from=req.year_from,
+            year_to=req.year_to,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

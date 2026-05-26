@@ -89,6 +89,29 @@ export interface MemoryStats {
   tags?: string[];
 }
 
+// ── Literature Search ───────────────────────────────────
+
+export interface LiteraturePaper {
+  paperId: string;
+  title: string;
+  authors: string[];
+  year: number | null;
+  abstract: string;
+  doi: string;
+  url: string;
+  venue: string;
+  citationCount: number;
+}
+
+export interface LiteratureResult {
+  query: string;
+  total: number;
+  offset: number;
+  next: number;
+  count: number;
+  papers: LiteraturePaper[];
+}
+
 // ── HPC Fusion ──────────────────────────────────────────
 
 export interface HPCJob {
@@ -188,6 +211,25 @@ export interface PipelineIterResult {
   n_prompts: number;
   avg_reward?: number;
   training?: Record<string, unknown>;
+}
+
+// ── Molecular Prediction ──────────────────────────────
+
+export interface PredictionResult {
+  valid: boolean;
+  smiles: string;
+  canonical_smiles: string;
+  molecular_formula: string;
+  molecular_weight: number;
+  logp: number;
+  h_bond_donors: number;
+  h_bond_acceptors: number;
+  rotatable_bonds: number;
+  tpsa: number;
+  heavy_atom_count: number;
+  ring_count: number;
+  aromatic_rings: number;
+  error?: string;
 }
 
 export interface AnnotatorQuality {

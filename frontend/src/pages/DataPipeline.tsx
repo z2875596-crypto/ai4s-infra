@@ -3,9 +3,10 @@ import { dataAPI } from "@/api/client";
 import type { CatalogEntry, Snapshot, IngestionReport } from "@/types";
 import StatCard from "@/components/StatCard";
 import StatusBadge from "@/components/StatusBadge";
-import { RefreshCw, Play, Search, Plus, Trash2, GitBranch, Server } from "lucide-react";
+import { RefreshCw, Play, Search, Plus, Trash2, GitBranch, Server, Beaker } from "lucide-react";
+import type { PredictionResult } from "@/types";
 
-type Tab = "ingestion" | "catalog" | "snapshots" | "lineage";
+type Tab = "ingestion" | "catalog" | "snapshots" | "lineage" | "prediction";
 
 export default function DataPipeline() {
   const [tab, setTab] = useState<Tab>("ingestion");
@@ -22,7 +23,7 @@ export default function DataPipeline() {
 
       {/* Tab bar */}
       <div className="flex gap-1 mb-6 border-b border-white/5 pb-0">
-        {(["ingestion", "catalog", "snapshots", "lineage"] as const).map((t) => (
+        {(["ingestion", "catalog", "snapshots", "lineage", "prediction"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -32,7 +33,7 @@ export default function DataPipeline() {
                 : "text-gray-400 hover:text-gray-200"
             }`}
           >
-            {t === "ingestion" ? "Ingestion" : t === "catalog" ? "Catalog" : t === "snapshots" ? "Snapshots" : "Lineage"}
+            {t === "ingestion" ? "Ingestion" : t === "catalog" ? "Catalog" : t === "snapshots" ? "Snapshots" : t === "lineage" ? "Lineage" : "Prediction"}
           </button>
         ))}
       </div>
@@ -41,6 +42,7 @@ export default function DataPipeline() {
       {tab === "catalog" && <CatalogTab />}
       {tab === "snapshots" && <SnapshotsTab />}
       {tab === "lineage" && <LineageTab />}
+      {tab === "prediction" && <PredictionTab />}
     </div>
   );
 }
@@ -126,12 +128,40 @@ function IngestionTab() {
           <Play className="w-4 h-4 text-emerald-400" /> Run Ingestion
         </h2>
         <div className="space-y-2 mb-4">
-          <select className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm" value={ingestForm.source_name} onChange={(e) => setIngestForm({ ...ingestForm, source_name: e.target.value })}>
-            <option value="">Select source...</option>
-            {sources.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <input className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm" placeholder="Table name" value={ingestForm.table} onChange={(e) => setIngestForm({ ...ingestForm, table: e.target.value })} />
+          <div className="relative">
+            <input
+              className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+              placeholder="Source name (type 'pubchem' for PubChem)"
+              value={ingestForm.source_name}
+              onChange={(e) => setIngestForm({ ...ingestForm, source_name: e.target.value })}
+              list="source-list"
+            />
+            <datalist id="source-list">
+              {sources.map((s) => <option key={s} value={s} />)}
+              <option value="pubchem" />
+            </datalist>
+          </div>
+          <input
+            className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm"
+            placeholder={ingestForm.source_name === "pubchem" ? "Compound name (e.g. aspirin)" : "Table name"}
+            value={ingestForm.table}
+            onChange={(e) => setIngestForm({ ...ingestForm, table: e.target.value })}
+          />
           <input className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm" placeholder="Target path" value={ingestForm.target_path} onChange={(e) => setIngestForm({ ...ingestForm, target_path: e.target.value })} />
+          {ingestForm.source_name === "pubchem" && (
+            <div className="flex flex-wrap gap-1.5">
+              {["aspirin", "caffeine", "ibuprofen", "paracetamol", "glucose", "ethanol"].map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setIngestForm({ ...ingestForm, table: name })}
+                  className="px-2 py-1 text-xs rounded bg-accent/10 text-accent-light hover:bg-accent/20 transition-colors"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <button onClick={runIngestion} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
           <Play className="w-4 h-4" /> Run Ingestion
@@ -335,6 +365,133 @@ function LineageTab() {
           <pre className="text-xs text-gray-400 font-mono whitespace-pre-wrap">{mermaid}</pre>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Prediction Tab ─────────────────────────────────────────
+
+function PredictionTab() {
+  const [smiles, setSmiles] = useState("CC(=O)Oc1ccccc1C(=O)O");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<PredictionResult | null>(null);
+  const [error, setError] = useState("");
+
+  const predict = async () => {
+    if (!smiles.trim()) return;
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      const res = await dataAPI.predictMolecule(smiles.trim());
+      setResult(res);
+    } catch (e: unknown) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const props = result && result.valid ? [
+    { label: "Molecular Formula", value: result.molecular_formula },
+    { label: "Molecular Weight", value: `${result.molecular_weight.toFixed(2)} g/mol` },
+    { label: "LogP (Lipophilicity)", value: result.logp.toFixed(2) },
+    { label: "H-Bond Donors", value: result.h_bond_donors },
+    { label: "H-Bond Acceptors", value: result.h_bond_acceptors },
+    { label: "Rotatable Bonds", value: result.rotatable_bonds },
+    { label: "TPSA", value: `${result.tpsa.toFixed(2)} A²` },
+    { label: "Heavy Atoms", value: result.heavy_atom_count },
+    { label: "Ring Count", value: result.ring_count },
+    { label: "Aromatic Rings", value: result.aromatic_rings },
+  ] : [];
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Input */}
+      <div className="bg-surface-light rounded-xl border border-white/5 p-5">
+        <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
+          <Beaker className="w-4 h-4 text-purple-400" /> Molecular Property Prediction
+        </h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Enter a SMILES string to predict molecular properties using RDKit. Try the example buttons below.
+        </p>
+        <div className="space-y-2 mb-3">
+          <input
+            className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm font-mono"
+            placeholder="SMILES string (e.g. CC(=O)Oc1ccccc1C(=O)O)"
+            value={smiles}
+            onChange={(e) => setSmiles(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && predict()}
+          />
+          <button
+            onClick={predict}
+            disabled={loading}
+            className="w-full bg-purple-600 hover:bg-purple-700 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            <Beaker className="w-4 h-4" />
+            {loading ? "Predicting..." : "Predict Properties"}
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            { label: "Aspirin", smi: "CC(=O)Oc1ccccc1C(=O)O" },
+            { label: "Caffeine", smi: "CN1C=NC2=C1C(=O)N(C(=O)N2C)C" },
+            { label: "Ibuprofen", smi: "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O" },
+            { label: "Paracetamol", smi: "CC(=O)NC1=CC=C(C=C1)O" },
+            { label: "Glucose", smi: "C(C1C(C(C(C(O1)O)O)O)O)O" },
+            { label: "Ethanol", smi: "CCO" },
+          ].map(({ label, smi }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => { setSmiles(smi); setResult(null); setError(""); }}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                smiles === smi ? "bg-purple-600 text-white" : "bg-accent/10 text-accent-light hover:bg-accent/20"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="bg-surface-light rounded-xl border border-white/5 p-5">
+        <h2 className="text-sm font-semibold mb-3">Prediction Results</h2>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-400 mb-3">{error}</div>
+        )}
+
+        {result && result.valid && (
+          <div>
+            <div className="bg-surface rounded-lg p-3 mb-3">
+              <div className="text-xs text-gray-400">Canonical SMILES</div>
+              <div className="text-sm font-mono text-accent-light break-all">{result.canonical_smiles}</div>
+            </div>
+            <div className="space-y-1">
+              {props.map((p) => (
+                <div key={p.label} className="flex justify-between items-center bg-surface rounded-lg px-3 py-2">
+                  <span className="text-xs text-gray-400">{p.label}</span>
+                  <span className="text-sm font-medium font-mono">{p.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {result && !result.valid && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-sm text-amber-400">
+            {result.error || "Invalid SMILES string"}
+          </div>
+        )}
+
+        {!result && !error && (
+          <p className="text-sm text-gray-500 text-center py-12">
+            Enter a SMILES string and click "Predict Properties" to see results.
+          </p>
+        )}
+      </div>
     </div>
   );
 }

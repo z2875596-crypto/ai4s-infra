@@ -51,6 +51,9 @@ export const dataAPI = {
     get<{ count: number; snapshots: import("@/types").Snapshot[] }>(`/data/snapshots${dataset ? `?dataset=${dataset}` : ""}`),
 
   getLineage: (id: string) => get<import("@/types").LineageGraph>(`/data/lineage/${id}`),
+
+  predictMolecule: (smiles: string) =>
+    post<import("@/types").PredictionResult>("/data/predict", { smiles }),
 };
 
 // ── Agent Runtime ───────────────────────────────────────
@@ -78,6 +81,11 @@ export const agentAPI = {
   memoryStats: () => get<import("@/types").MemoryStats>("/agent/memory/stats"),
 
   orchestratorStatus: () => get<Record<string, unknown>>("/agent/status"),
+
+  literatureSearch: (query: string, limit?: number, yearFrom?: string, yearTo?: string) =>
+    post<import("@/types").LiteratureResult>("/agent/literature/search", {
+      query, limit: limit || 10, year_from: yearFrom, year_to: yearTo,
+    }),
 };
 
 // ── HPC Fusion ──────────────────────────────────────────
