@@ -1,19 +1,19 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
-import DataPipeline from "./pages/DataPipeline";
-import AgentTasks from "./pages/AgentTasks";
-import HPCResources from "./pages/HPCResources";
-import RLHFTraining from "./pages/RLHFTraining";
+import MolecularDatabase from "./pages/MolecularDatabase";
+import LiteratureResearch from "./pages/LiteratureResearch";
+import PropertyPrediction from "./pages/PropertyPrediction";
+import ChemistryToolbox from "./pages/ChemistryToolbox";
 
 export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/data" replace />} />
-        <Route path="/data" element={<DataPipeline />} />
-        <Route path="/agents" element={<AgentTasks />} />
-        <Route path="/hpc" element={<HPCResources />} />
-        <Route path="/rlhf" element={<RLHFTraining />} />
+        <Route path="/" element={<Navigate to="/database" replace />} />
+        <Route path="/database" element={<MolecularDatabase />} />
+        <Route path="/literature" element={<LiteratureResearch />} />
+        <Route path="/prediction" element={<PropertyPrediction />} />
+        <Route path="/experiments" element={<ChemistryToolbox />} />
       </Route>
     </Routes>
   );
