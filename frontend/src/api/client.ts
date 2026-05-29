@@ -132,13 +132,17 @@ export const agentResearchAPI = {
     });
   },
 
-  listSessions: (limit?: number) =>
-    get<{ count: number; sessions: import("@/types").AgentSession[] }>(
-      `/agent/sessions?limit=${limit || 20}`
-    ),
+  listSessions: async (limit?: number) => {
+    const resp = await fetch(`/api/agent/sessions?limit=${limit || 20}`);
+    if (!resp.ok) throw new Error(`${resp.status}: ${await resp.text()}`);
+    return resp.json() as Promise<{ count: number; sessions: import("@/types").AgentSession[] }>;
+  },
 
-  getSession: (id: string) =>
-    get<import("@/types").AgentSession>(`/agent/sessions/${id}`),
+  getSession: async (id: string) => {
+    const resp = await fetch(`/api/agent/sessions/${id}`);
+    if (!resp.ok) throw new Error(`${resp.status}: ${await resp.text()}`);
+    return resp.json() as Promise<import("@/types").AgentSession>;
+  },
 };
 
 // ── RLHF ────────────────────────────────────────────────

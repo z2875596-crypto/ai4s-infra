@@ -11,6 +11,10 @@ Usage:
 
 from __future__ import annotations
 
+from dotenv import load_dotenv
+
+load_dotenv()  # load DEEPSEEK_API_KEY etc. from project-root .env
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI

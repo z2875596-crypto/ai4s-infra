@@ -108,7 +108,6 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
                     "limit": {
                         "type": "integer",
                         "description": "返回论文数量上限，默认10，最大20",
-                        "default": 10,
                     },
                 },
                 "required": ["query"],
@@ -229,7 +228,7 @@ async def _execute_search_literature(args: dict[str, Any]) -> str:
             f"{i}. **{p.get('title', 'N/A')}**\n"
             f"   作者: {authors} | 年份: {p.get('year', 'N/A')} | "
             f"期刊: {p.get('venue', 'N/A')} | 引用: {p.get('citationCount', 0)}\n"
-            f"   摘要: {p.get('abstract', 'N/A')[:300]}...\n"
+            f"   摘要: {(p.get('abstract') or 'N/A')[:300]}...\n"
         )
     return "\n".join(lines)
 
@@ -515,21 +514,26 @@ class AgentOrchestrator:
 
             # ── Call LLM ─────────────────────────────────────
             client = await self._get_client()
+            request_body = {
+                "model": DEEPSEEK_MODEL,
+                "messages": messages,
+                "tools": TOOL_DEFINITIONS,
+                "temperature": 0.3,
+                "max_tokens": 4096,
+            }
+            print("\n=== DeepSeek API 请求体 ===")
+            print(json.dumps(request_body, ensure_ascii=False, indent=2))
+            print("=== 请求体结束 ===\n")
             try:
                 resp = await client.post(
                     "/chat/completions",
-                    json={
-                        "model": DEEPSEEK_MODEL,
-                        "messages": messages,
-                        "tools": TOOL_DEFINITIONS,
-                        "temperature": 0.3,
-                        "max_tokens": 4096,
-                    },
+                    json=request_body,
                 )
                 resp.raise_for_status()
                 result = resp.json()
             except httpx.HTTPStatusError as e:
                 logger.error("DeepSeek API error: %s", e)
+                print(f"\n=== DeepSeek 400 响应详情 ===\n{e.response.text}\n=== 响应结束 ===\n")
                 yield AgentEvent(type="error", content=f"API 调用失败: {e.response.status_code}", step_index=step_index)
                 return
             except Exception as e:
@@ -539,37 +543,53 @@ class AgentOrchestrator:
 
             choice = result["choices"][0]
             msg = choice["message"]
+            print(f"\n=== DeepSeek 返回的 message ===\n{json.dumps(msg, ensure_ascii=False, indent=2)}\n=== message 结束 ===")
 
             # ── Check if LLM wants to call a tool ────────────
             if msg.get("tool_calls"):
-                tool_call = msg["tool_calls"][0]
-                tool_name = tool_call["function"]["name"]
-                tool_args = json.loads(tool_call["function"]["arguments"])
+                tool_calls = msg["tool_calls"]
+                print(f"\n=== LLM 返回了 {len(tool_calls)} 个 tool_calls ===")
+                for i, tc in enumerate(tool_calls):
+                    print(f"  tool_call[{i}]: id={tc.get('id')}, name={tc['function']['name']}")
 
                 # Yield thought (extract from content if present)
-                thought = msg.get("content", "").strip()
-                if thought:
+                thought = msg.get("content") or ""
+                if thought.strip():
                     yield AgentEvent(type="thought", content=thought, step_index=step_index)
                     self.memory.append_step(session_id, "thought", thought)
 
-                # Yield action
-                action_desc = f"调用工具: **{tool_name}**\n参数: ```json\n{json.dumps(tool_args, ensure_ascii=False, indent=2)}\n```"
-                yield AgentEvent(type="action", content=action_desc, tool_name=tool_name, step_index=step_index)
-                self.memory.append_step(session_id, "action", action_desc, tool_name=tool_name)
+                # Execute each tool, collect (tool_call, observation) pairs
+                tool_results: list[tuple[dict[str, Any], str]] = []
+                for tool_call in tool_calls:
+                    tool_name = tool_call["function"]["name"]
+                    tool_args = json.loads(tool_call["function"]["arguments"])
 
-                # Execute tool
-                executor = TOOL_EXECUTORS.get(tool_name)
-                if executor:
-                    observation = await executor(tool_args) if asyncio.iscoroutinefunction(executor) else executor(tool_args)
-                else:
-                    observation = f"未知工具: {tool_name}"
+                    # Yield action
+                    action_desc = f"调用工具: **{tool_name}**\n参数: ```json\n{json.dumps(tool_args, ensure_ascii=False, indent=2)}\n```"
+                    yield AgentEvent(type="action", content=action_desc, tool_name=tool_name, step_index=step_index)
+                    self.memory.append_step(session_id, "action", action_desc, tool_name=tool_name)
 
-                yield AgentEvent(type="observation", content=observation, tool_name=tool_name, step_index=step_index)
-                self.memory.append_step(session_id, "observation", observation, tool_name=tool_name)
+                    # Execute tool
+                    executor = TOOL_EXECUTORS.get(tool_name)
+                    if executor:
+                        observation = await executor(tool_args) if asyncio.iscoroutinefunction(executor) else executor(tool_args)
+                    else:
+                        observation = f"未知工具: {tool_name}"
 
-                # Append to messages
-                messages.append(msg)
-                messages.append({"role": "tool", "tool_call_id": tool_call["id"], "content": observation})
+                    yield AgentEvent(type="observation", content=observation, tool_name=tool_name, step_index=step_index)
+                    self.memory.append_step(session_id, "observation", observation, tool_name=tool_name)
+
+                    tool_results.append((tool_call, observation))
+
+                # Append assistant msg, then all tool responses
+                assistant_msg: dict[str, Any] = {"role": "assistant"}
+                if msg.get("content"):
+                    assistant_msg["content"] = msg["content"]
+                assistant_msg["tool_calls"] = [tc for tc, _ in tool_results]
+                messages.append(assistant_msg)
+                for tc, obs in tool_results:
+                    messages.append({"role": "tool", "tool_call_id": tc["id"], "content": obs})
+                print(f"=== 已处理 {len(tool_results)} 个 tool_calls，消息历史已更新 ===\n")
 
             else:
                 # ── Final answer ──────────────────────────────
