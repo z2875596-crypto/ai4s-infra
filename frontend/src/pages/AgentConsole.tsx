@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   Send, Brain, Wrench, Eye, FileText, AlertCircle, Loader2,
-  History, Trash2, ChevronDown, ChevronRight, Search, FlaskConical,
+  History, Trash2, ChevronDown, ChevronRight,
   Zap, BookOpen, CheckCircle2,
 } from "lucide-react";
 import type { AgentEvent, AgentSession, AgentStep } from "@/types";
@@ -19,18 +19,19 @@ const TOOL_LABELS: Record<string, string> = {
   lookup_element: "正在查询元素信息…",
 };
 
-function getStatusText(events: AgentEvent[], running: boolean): string {
-  if (!running) return "研究完成";
+function getStatusText(events: AgentEvent[], running: boolean): { text: string; step: number } {
+  if (!running) return { text: "研究完成", step: 0 };
   // Find the latest action event
   for (let i = events.length - 1; i >= 0; i--) {
     if (events[i].type === "action" && events[i].tool_name) {
-      return TOOL_LABELS[events[i].tool_name!] || `正在执行: ${events[i].tool_name}`;
+      const label = TOOL_LABELS[events[i].tool_name!] || `正在执行: ${events[i].tool_name}`;
+      return { text: `${label}（步骤 ${events[i].step_index}）`, step: events[i].step_index };
     }
   }
   // If there are thought events but no action yet
   const lastThought = [...events].reverse().find(e => e.type === "thought");
-  if (lastThought) return "正在思考…";
-  return "正在分析问题…";
+  if (lastThought) return { text: `正在思考…（步骤 ${lastThought.step_index}）`, step: lastThought.step_index };
+  return { text: "正在分析问题…", step: 0 };
 }
 
 /* ── Step card colors ──────────────────────────────────── */
@@ -250,12 +251,23 @@ export default function AgentConsole() {
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll when new events arrive
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new events arrive during run
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && running) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [events]);
+  }, [events, running]);
+
+  // Auto-scroll to report when agent finishes
+  useEffect(() => {
+    if (hasFinished && reportRef.current) {
+      setTimeout(() => {
+        reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 400);
+    }
+  }, [hasFinished]);
 
   // Load sessions on mount
   const loadSessions = useCallback(async () => {
@@ -361,12 +373,9 @@ export default function AgentConsole() {
   };
 
   // Derived state
-  const statusText = useMemo(() => getStatusText(events, running), [events, running]);
+  const statusInfo = useMemo(() => getStatusText(events, running), [events, running]);
   const lastAnswer = useMemo(() => [...events].reverse().find((e) => e.type === "answer"), [events]);
   const hasFinished = !running && !!lastAnswer;
-
-  // Latest event index for default-expand logic
-  const lastEventIdx = events.length;
 
   return (
     <div>
@@ -388,8 +397,17 @@ export default function AgentConsole() {
           <Zap className="w-4 h-4 text-slate-400 shrink-0" />
         )}
         <span className={`text-sm font-medium ${running ? "text-brand-700" : hasFinished ? "text-emerald-700" : "text-slate-500"}`}>
-          {statusText}
+          {statusInfo.text}
         </span>
+        {hasFinished && (
+          <button
+            onClick={() => reportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="ml-2 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium hover:bg-amber-200 transition-colors flex items-center gap-1"
+          >
+            <BookOpen className="w-3 h-3" />
+            查看报告
+          </button>
+        )}
         {/* Progress steps */}
         <div className="flex-1" />
         <div className="flex items-center gap-1.5">
@@ -465,22 +483,25 @@ export default function AgentConsole() {
             {/* Step cards */}
             {events
               .filter(e => e.type !== "answer") // answers rendered in final report
-              .map((evt, i) => (
-                <StepCard
-                  key={i}
-                  type={evt.type}
-                  content={evt.content}
-                  toolName={evt.tool_name}
-                  idx={evt.step_index}
-                  defaultExpanded={evt.type === "error" || i >= events.length - 3}
-                />
-              ))}
+              .map((evt, i, arr) => {
+                const isLatest = running && i === arr.length - 1;
+                return (
+                  <StepCard
+                    key={i}
+                    type={evt.type}
+                    content={evt.content}
+                    toolName={evt.tool_name}
+                    idx={evt.step_index}
+                    defaultExpanded={evt.type === "error" || isLatest}
+                  />
+                );
+              })}
 
             {/* Running indicator */}
             {running && (
               <div className="flex items-center gap-2 text-xs text-brand-600 py-2 px-1">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                {statusText}
+                {statusInfo.text}
               </div>
             )}
 
@@ -502,7 +523,9 @@ export default function AgentConsole() {
 
             {/* ── Final research report ── */}
             {lastAnswer && !running && (
-              <ResearchReport content={lastAnswer.content} />
+              <div ref={reportRef}>
+                <ResearchReport content={lastAnswer.content} />
+              </div>
             )}
           </div>
         </div>
