@@ -1,116 +1,109 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Brain, Wrench, Eye, FileText, AlertCircle, Loader2, History, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import {
+  Send, Brain, Wrench, Eye, FileText, AlertCircle, Loader2,
+  History, Trash2, ChevronDown, ChevronRight, Search, FlaskConical,
+  Zap, BookOpen, CheckCircle2,
+} from "lucide-react";
 import type { AgentEvent, AgentSession, AgentStep } from "@/types";
 import { agentResearchAPI } from "@/api/client";
 
-/* ── Lightweight Markdown→HTML renderer ─────────────────── */
+/* ── Status helpers ────────────────────────────────────── */
 
-function renderMarkdown(md: string): string {
-  let html = md
-    // Escape HTML entities
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  // Code blocks (fenced)
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g,
-    '<pre class="bg-slate-800 text-emerald-300 rounded-lg p-3 my-2 overflow-x-auto text-xs"><code>$2</code></pre>');
-
-  // Inline code
-  html = html.replace(/`([^`]+)`/g,
-    '<code class="bg-slate-100 text-rose-600 px-1 py-0.5 rounded text-xs font-mono">$1</code>');
-
-  // Bold
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>');
-
-  // Italic
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-  // Headers
-  html = html.replace(/^### (.+)$/gm, '<h4 class="text-sm font-semibold mt-3 mb-1">$1</h4>');
-  html = html.replace(/^## (.+)$/gm, '<h3 class="text-base font-semibold mt-3 mb-1.5">$1</h3>');
-  html = html.replace(/^# (.+)$/gm, '<h2 class="text-lg font-bold mt-4 mb-2">$1</h2>');
-
-  // Unordered lists
-  html = html.replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-xs">$1</li>');
-  html = html.replace(/((?:<li[^>]*>.*<\/li>\n?)+)/g,
-    '<ul class="my-1 space-y-0.5">$1</ul>');
-
-  // Ordered lists
-  html = html.replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal text-xs">$1</li>');
-
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" class="text-brand-600 underline" target="_blank" rel="noopener">$1</a>');
-
-  // Tables
-  html = html.replace(/^\|(.+)\|$/gm, (line) => {
-    const cells = line.split("|").filter(c => c.trim()).map(c => c.trim());
-    if (cells.every(c => /^[-:]+$/.test(c))) return ""; // separator row
-    const td = cells.map(c => `<td class="border border-slate-200 px-2 py-1 text-xs">${c}</td>`).join("");
-    return `<tr>${td}</tr>`;
-  });
-  html = html.replace(/(<tr>.*<\/tr>\n?)+/g,
-    '<table class="w-full border-collapse border border-slate-200 my-2"><tbody>$&</tbody></table>');
-
-  // Paragraphs (double newlines)
-  html = html.replace(/\n\n+/g, "</p><p class='text-xs leading-relaxed my-1'>");
-  html = "<p class='text-xs leading-relaxed my-1'>" + html + "</p>";
-
-  // Single newlines → <br/>
-  html = html.replace(/\n/g, "<br/>");
-
-  return html;
-}
-
-/* ── Step icon + color mapping ──────────────────────────── */
-
-const STEP_META: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string; border: string; bg: string }> = {
-  thought:     { icon: Brain,       label: "思考",   border: "border-amber-200",  bg: "bg-amber-50" },
-  action:      { icon: Wrench,      label: "行动",   border: "border-blue-200",   bg: "bg-blue-50" },
-  observation: { icon: Eye,         label: "观察",   border: "border-emerald-200", bg: "bg-emerald-50" },
-  answer:      { icon: FileText,    label: "报告",   border: "border-brand-200",  bg: "bg-white" },
-  error:       { icon: AlertCircle, label: "错误",   border: "border-red-200",    bg: "bg-red-50" },
+const TOOL_LABELS: Record<string, string> = {
+  search_literature: "正在搜索文献…",
+  search_pubchem: "正在查询 PubChem 化合物…",
+  predict_properties: "正在预测分子性质…",
+  calculate_molar_mass: "正在计算摩尔质量…",
+  lookup_element: "正在查询元素信息…",
 };
 
-/* ── Step Card ──────────────────────────────────────────── */
+function getStatusText(events: AgentEvent[], running: boolean): string {
+  if (!running) return "研究完成";
+  // Find the latest action event
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (events[i].type === "action" && events[i].tool_name) {
+      return TOOL_LABELS[events[i].tool_name!] || `正在执行: ${events[i].tool_name}`;
+    }
+  }
+  // If there are thought events but no action yet
+  const lastThought = [...events].reverse().find(e => e.type === "thought");
+  if (lastThought) return "正在思考…";
+  return "正在分析问题…";
+}
 
-function StepCard({ type, content, toolName, idx }: { type: string; content: string; toolName?: string | null; idx: number }) {
-  const meta = STEP_META[type] || STEP_META.thought;
-  const Icon = meta.icon;
+/* ── Step card colors ──────────────────────────────────── */
+
+const STEP_COLORS: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string; border: string; bg: string; dot: string }> = {
+  thought:     { icon: Brain,       label: "思考",   border: "border-l-blue-500",   bg: "bg-blue-50/60",   dot: "bg-blue-500" },
+  action:      { icon: Wrench,      label: "工具调用", border: "border-l-purple-500", bg: "bg-purple-50/60", dot: "bg-purple-500" },
+  observation: { icon: Eye,         label: "观察结果", border: "border-l-emerald-500", bg: "bg-emerald-50/60", dot: "bg-emerald-500" },
+  answer:      { icon: FileText,    label: "最终报告", border: "border-l-amber-500",  bg: "bg-amber-50/60",  dot: "bg-amber-500" },
+  error:       { icon: AlertCircle, label: "错误",   border: "border-l-red-500",    bg: "bg-red-50/60",    dot: "bg-red-500" },
+};
+
+/* ── Step Card (colored left border + collapse) ────────── */
+
+function StepCard({
+  type, content, toolName, idx, defaultExpanded,
+}: {
+  type: string;
+  content: string;
+  toolName?: string | null;
+  idx: number;
+  defaultExpanded: boolean;
+}) {
+  const [collapsed, setCollapsed] = useState(!defaultExpanded);
+  const colors = STEP_COLORS[type] || STEP_COLORS.thought;
+  const Icon = colors.icon;
 
   return (
-    <div className={`rounded-lg border ${meta.border} ${meta.bg} p-3 animate-[fadeIn_0.3s_ease-out]`}>
-      <div className="flex items-center gap-2 mb-1.5">
-        <Icon className="w-3.5 h-3.5 text-slate-500" />
+    <div className={`rounded-r-lg border-l-4 ${colors.border} bg-white border border-slate-200 border-l-4 shadow-sm overflow-hidden`}>
+      {/* Header — click to toggle */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 transition-colors text-left"
+      >
+        <span className={`w-1.5 h-1.5 rounded-full ${colors.dot} shrink-0`} />
+        <Icon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
         <span className="text-xs font-semibold text-slate-600">
-          {meta.label} #{idx}
+          {colors.label} #{idx}
         </span>
         {toolName && (
-          <span className="text-[10px] bg-white border border-slate-200 rounded px-1.5 py-0.5 text-slate-500 font-mono">
+          <span className="text-[10px] bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-500 font-mono shrink-0">
             {toolName}
           </span>
         )}
-      </div>
-      {type === "answer" ? (
-        <div
-          className="prose prose-xs max-w-none text-slate-700"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-        />
-      ) : (
-        <div className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">{content}</div>
+        <span className="flex-1" />
+        {collapsed
+          ? <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          : <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        }
+      </button>
+
+      {/* Body */}
+      {!collapsed && (
+        <div className={`px-3 pb-3 pt-1 ${colors.bg}`}>
+          {type === "answer" ? (
+            <div className="prose prose-sm max-w-none text-slate-700 prose-headings:text-slate-800 prose-a:text-brand-600 prose-code:text-rose-600 prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:bg-slate-800 prose-pre:text-emerald-300 prose-table:border-collapse">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {content}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <div className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">{content}</div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-/* ── Session History Drawer ─────────────────────────────── */
+/* ── Session History Sidebar ───────────────────────────── */
 
 function SessionList({
-  sessions,
-  onSelect,
-  onRefresh,
-  loading,
+  sessions, onSelect, onRefresh, loading,
 }: {
   sessions: AgentSession[];
   onSelect: (s: AgentSession) => void;
@@ -149,7 +142,45 @@ function SessionList({
   );
 }
 
-/* ── Main Console ───────────────────────────────────────── */
+/* ── Research Report Section ───────────────────────────── */
+
+function ResearchReport({ content }: { content: string }) {
+  return (
+    <div className="bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden mt-4">
+      {/* Report header */}
+      <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center gap-2">
+        <BookOpen className="w-4 h-4 text-amber-600" />
+        <span className="text-sm font-semibold text-amber-800">研究报告</span>
+        <span className="flex-1" />
+        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+        <span className="text-xs text-emerald-600 font-medium">生成完成</span>
+      </div>
+      {/* Report body */}
+      <div className="p-5">
+        <div className="prose prose-sm max-w-none text-slate-700
+          prose-headings:text-slate-800
+          prose-h2:text-lg prose-h2:font-bold prose-h2:mt-6 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-slate-200
+          prose-h3:text-base prose-h3:font-semibold prose-h3:mt-4 prose-h3:mb-2
+          prose-a:text-brand-600 prose-a:underline
+          prose-code:text-rose-600 prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
+          prose-pre:bg-slate-800 prose-pre:text-emerald-300 prose-pre:rounded-lg prose-pre:p-4 prose-pre:text-xs
+          prose-table:border-collapse prose-table:w-full
+          prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:px-3 prose-th:py-1.5 prose-th:text-xs prose-th:font-semibold prose-th:text-slate-700
+          prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-1.5 prose-td:text-xs
+          prose-li:text-xs prose-li:leading-relaxed
+          prose-p:text-xs prose-p:leading-relaxed
+          prose-strong:font-semibold prose-strong:text-slate-800
+          prose-em:text-slate-600">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {content}
+          </ReactMarkdown>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Console ──────────────────────────────────────── */
 
 export default function AgentConsole() {
   const [query, setQuery] = useState("");
@@ -191,7 +222,6 @@ export default function AgentConsole() {
     setEvents([]);
     setError("");
     setCurrentSessionId(session.session_id);
-    // Convert steps to look like events for display
     setEvents(
       session.steps.map((s: AgentStep, i: number) => ({
         type: s.step_type,
@@ -257,7 +287,7 @@ export default function AgentConsole() {
     } finally {
       setRunning(false);
       abortRef.current = null;
-      loadSessions(); // refresh history
+      loadSessions();
     }
   };
 
@@ -273,21 +303,59 @@ export default function AgentConsole() {
     }
   };
 
-  const lastAnswer = [...events].reverse().find((e) => e.type === "answer");
+  // Derived state
+  const statusText = useMemo(() => getStatusText(events, running), [events, running]);
+  const lastAnswer = useMemo(() => [...events].reverse().find((e) => e.type === "answer"), [events]);
+  const hasFinished = !running && !!lastAnswer;
+
+  // Latest event index for default-expand logic
+  const lastEventIdx = events.length;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-slate-800">AI 研究助手</h1>
           <p className="text-sm text-slate-500 mt-1">基于 ReAct 模式的多步推理研究 Agent</p>
         </div>
       </div>
 
+      {/* ── Status indicator bar ── */}
+      <div className="mb-4 bg-white border border-slate-200 rounded-lg px-4 py-2.5 flex items-center gap-3 shadow-sm">
+        {running ? (
+          <Loader2 className="w-4 h-4 text-brand-600 animate-spin shrink-0" />
+        ) : hasFinished ? (
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+        ) : (
+          <Zap className="w-4 h-4 text-slate-400 shrink-0" />
+        )}
+        <span className={`text-sm font-medium ${running ? "text-brand-700" : hasFinished ? "text-emerald-700" : "text-slate-500"}`}>
+          {statusText}
+        </span>
+        {/* Progress steps */}
+        <div className="flex-1" />
+        <div className="flex items-center gap-1.5">
+          {(["search_literature", "search_pubchem", "predict_properties", "calculate_molar_mass", "lookup_element"] as const).map((tool) => {
+            const toolUsed = events.some(e => e.type === "action" && e.tool_name === tool);
+            return (
+              <span
+                key={tool}
+                className={`w-2 h-2 rounded-full ${
+                  toolUsed ? "bg-emerald-400" : "bg-slate-200"
+                }`}
+                title={TOOL_LABELS[tool]?.replace("正在", "").replace("…", "")}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Main area with sidebar ── */}
       <div className="flex gap-0 rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white" style={{ minHeight: 600 }}>
-        {/* Main area */}
+        {/* Center — display + input */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Input area */}
+          {/* Input */}
           <div className="p-4 border-b border-slate-100 bg-slate-50/50">
             <div className="flex gap-2">
               <div className="flex-1 relative">
@@ -327,8 +395,9 @@ export default function AgentConsole() {
             </p>
           </div>
 
-          {/* Display area */}
-          <div ref={scrollRef} className="flex-1 overflow-auto p-4 space-y-3">
+          {/* Scrollable display */}
+          <div ref={scrollRef} className="flex-1 overflow-auto p-4 space-y-2.5">
+            {/* Empty state */}
             {events.length === 0 && !running && !error && (
               <div className="flex flex-col items-center justify-center h-full text-slate-300 gap-3">
                 <Brain className="w-10 h-10" />
@@ -336,23 +405,37 @@ export default function AgentConsole() {
               </div>
             )}
 
-            {events.map((evt, i) => (
-              <StepCard
-                key={i}
-                type={evt.type}
-                content={evt.content}
-                toolName={evt.tool_name}
-                idx={evt.step_index}
-              />
-            ))}
+            {/* Step cards */}
+            {events
+              .filter(e => e.type !== "answer") // answers rendered in final report
+              .map((evt, i) => (
+                <StepCard
+                  key={i}
+                  type={evt.type}
+                  content={evt.content}
+                  toolName={evt.tool_name}
+                  idx={evt.step_index}
+                  defaultExpanded={evt.type === "error" || i >= events.length - 3}
+                />
+              ))}
 
+            {/* Running indicator */}
             {running && (
-              <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+              <div className="flex items-center gap-2 text-xs text-brand-600 py-2 px-1">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Agent 推理中...
+                {statusText}
               </div>
             )}
 
+            {/* Inline error (when there are also events shown) */}
+            {error && !running && events.length > 0 && (
+              <div className="bg-red-50 border-l-4 border-l-red-500 rounded-r-lg p-3 text-red-700 text-xs">
+                <AlertCircle className="w-3.5 h-3.5 inline mr-1.5" />
+                {error}
+              </div>
+            )}
+
+            {/* Full error state */}
             {error && !running && events.length === 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
                 <AlertCircle className="w-4 h-4 inline mr-1.5" />
@@ -360,23 +443,14 @@ export default function AgentConsole() {
               </div>
             )}
 
-            {/* Final report highlight */}
+            {/* ── Final research report ── */}
             {lastAnswer && !running && (
-              <div className="bg-brand-50 border border-brand-200 rounded-lg p-4 mt-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileText className="w-4 h-4 text-brand-600" />
-                  <span className="text-sm font-semibold text-brand-700">最终研究报告</span>
-                </div>
-                <div
-                  className="text-sm text-slate-700"
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(lastAnswer.content) }}
-                />
-              </div>
+              <ResearchReport content={lastAnswer.content} />
             )}
           </div>
         </div>
 
-        {/* Session history sidebar */}
+        {/* Session sidebar */}
         <SessionList
           sessions={sessions}
           onSelect={viewSession}
