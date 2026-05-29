@@ -111,7 +111,7 @@ function SessionList({
   loading: boolean;
 }) {
   return (
-    <div className="border-l border-slate-200 bg-white w-64 shrink-0 overflow-auto">
+    <div className="border-t md:border-l md:border-t-0 border-slate-200 bg-white md:w-64 shrink-0 overflow-auto hidden md:block">
       <div className="p-3 border-b border-slate-100 flex items-center justify-between">
         <span className="text-xs font-semibold text-slate-600">历史会话</span>
         <button onClick={onRefresh} className="text-slate-400 hover:text-slate-600" title="刷新">
@@ -142,36 +142,93 @@ function SessionList({
   );
 }
 
+/* ── Custom table for alternating rows ─────────────────── */
+
+function ReportTable({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="my-5 overflow-x-auto rounded-lg border border-slate-300 shadow-sm">
+      <table className="min-w-full border-collapse text-xs sm:text-sm">
+        {children}
+      </table>
+    </div>
+  );
+}
+
+function ReportTH({ children }: { children: React.ReactNode }) {
+  return (
+    <th className="border border-slate-300 bg-slate-100 px-3 sm:px-4 py-2 sm:py-2.5 text-left text-xs sm:text-sm font-semibold text-slate-700 whitespace-nowrap">
+      {children}
+    </th>
+  );
+}
+
+function ReportTD({ children }: { children: React.ReactNode }) {
+  return (
+    <td className="border border-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-600">
+      {children}
+    </td>
+  );
+}
+
+function ReportTR({ children, index }: { children: React.ReactNode; index: number }) {
+  return (
+    <tr className={index % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+      {children}
+    </tr>
+  );
+}
+
 /* ── Research Report Section ───────────────────────────── */
 
 function ResearchReport({ content }: { content: string }) {
+  let trIndex = 0;
+
   return (
-    <div className="bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden mt-4">
+    <div className="bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden mt-6">
       {/* Report header */}
-      <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center gap-2">
+      <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-3 flex items-center gap-2">
         <BookOpen className="w-4 h-4 text-amber-600" />
         <span className="text-sm font-semibold text-amber-800">研究报告</span>
         <span className="flex-1" />
         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
         <span className="text-xs text-emerald-600 font-medium">生成完成</span>
       </div>
-      {/* Report body */}
-      <div className="p-5">
-        <div className="prose prose-sm max-w-none text-slate-700
+      {/* Report body — responsive padding & spacing */}
+      <div className="px-4 sm:px-6 md:px-8 py-5 sm:py-7">
+        <div className="prose prose-sm sm:prose-base max-w-none text-slate-700
           prose-headings:text-slate-800
-          prose-h2:text-lg prose-h2:font-bold prose-h2:mt-6 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-slate-200
-          prose-h3:text-base prose-h3:font-semibold prose-h3:mt-4 prose-h3:mb-2
+          prose-h2:text-lg sm:prose-h2:text-xl prose-h2:font-bold
+            prose-h2:mt-10 prose-h2:mb-6 prose-h2:pt-8
+            prose-h2:border-t prose-h2:border-slate-200
+            prose-h2:pb-2 prose-h2:border-b prose-h2:border-slate-200
+          prose-h3:text-base sm:prose-h3:text-lg prose-h3:font-semibold
+            prose-h3:mt-8 prose-h3:mb-3
           prose-a:text-brand-600 prose-a:underline
-          prose-code:text-rose-600 prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
-          prose-pre:bg-slate-800 prose-pre:text-emerald-300 prose-pre:rounded-lg prose-pre:p-4 prose-pre:text-xs
-          prose-table:border-collapse prose-table:w-full
-          prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:px-3 prose-th:py-1.5 prose-th:text-xs prose-th:font-semibold prose-th:text-slate-700
-          prose-td:border prose-td:border-slate-200 prose-td:px-3 prose-td:py-1.5 prose-td:text-xs
-          prose-li:text-xs prose-li:leading-relaxed
-          prose-p:text-xs prose-p:leading-relaxed
+          prose-code:text-rose-600 prose-code:bg-slate-100
+            prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+            prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
+          prose-pre:bg-slate-800 prose-pre:text-emerald-300
+            prose-pre:rounded-lg prose-pre:p-4 prose-pre:text-xs sm:prose-pre:text-sm
+            prose-pre:overflow-x-auto
+          prose-p:text-sm sm:prose-p:text-base prose-p:leading-relaxed prose-p:mb-4
+          prose-li:text-sm sm:prose-li:text-base prose-li:leading-relaxed prose-li:mb-1
           prose-strong:font-semibold prose-strong:text-slate-800
-          prose-em:text-slate-600">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          prose-em:text-slate-600
+        ">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              table: ({ children }) => <ReportTable>{children}</ReportTable>,
+              thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
+              tbody: ({ children }) => <tbody>{children}</tbody>,
+              th: ({ children }) => <ReportTH>{children}</ReportTH>,
+              td: ({ children }) => <ReportTD>{children}</ReportTD>,
+              tr: ({ children }) => {
+                const idx = trIndex++;
+                return <ReportTR index={idx}>{children}</ReportTR>;
+              },
+            }}
+          >
             {content}
           </ReactMarkdown>
         </div>
@@ -352,7 +409,7 @@ export default function AgentConsole() {
       </div>
 
       {/* ── Main area with sidebar ── */}
-      <div className="flex gap-0 rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white" style={{ minHeight: 600 }}>
+      <div className="flex flex-col md:flex-row gap-0 rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white" style={{ minHeight: 600 }}>
         {/* Center — display + input */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Input */}
