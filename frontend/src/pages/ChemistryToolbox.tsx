@@ -14,98 +14,100 @@ interface ElementData {
   eneg: number | null;
   oxStates: string;
   category: string;
+  mp: number | null;
+  bp: number | null;
 }
 
 const ELEMENTS: ElementData[] = [
-  { z:1,  symbol:"H",  name:"氢",   mass:1.008,   config:"1s¹",           eneg:2.20, oxStates:"-1, +1",      category:"非金属" },
-  { z:2,  symbol:"He", name:"氦",   mass:4.0026,  config:"1s²",           eneg:null, oxStates:"0",          category:"稀有气体" },
-  { z:3,  symbol:"Li", name:"锂",   mass:6.94,    config:"[He]2s¹",       eneg:0.98, oxStates:"+1",         category:"碱金属" },
-  { z:4,  symbol:"Be", name:"铍",   mass:9.0122,  config:"[He]2s²",       eneg:1.57, oxStates:"+2",         category:"碱土金属" },
-  { z:5,  symbol:"B",  name:"硼",   mass:10.81,   config:"[He]2s²2p¹",    eneg:2.04, oxStates:"+3",         category:"非金属" },
-  { z:6,  symbol:"C",  name:"碳",   mass:12.011,  config:"[He]2s²2p²",    eneg:2.55, oxStates:"-4, -3, -2, -1, +1, +2, +3, +4", category:"非金属" },
-  { z:7,  symbol:"N",  name:"氮",   mass:14.007,  config:"[He]2s²2p³",    eneg:3.04, oxStates:"-3, -2, -1, +1, +2, +3, +4, +5", category:"非金属" },
-  { z:8,  symbol:"O",  name:"氧",   mass:15.999,  config:"[He]2s²2p⁴",    eneg:3.44, oxStates:"-2, -1, +1, +2", category:"非金属" },
-  { z:9,  symbol:"F",  name:"氟",   mass:18.998,  config:"[He]2s²2p⁵",    eneg:3.98, oxStates:"-1",         category:"卤素" },
-  { z:10, symbol:"Ne", name:"氖",   mass:20.180,  config:"[He]2s²2p⁶",    eneg:null, oxStates:"0",          category:"稀有气体" },
-  { z:11, symbol:"Na", name:"钠",   mass:22.990,  config:"[Ne]3s¹",       eneg:0.93, oxStates:"+1",         category:"碱金属" },
-  { z:12, symbol:"Mg", name:"镁",   mass:24.305,  config:"[Ne]3s²",       eneg:1.31, oxStates:"+2",         category:"碱土金属" },
-  { z:13, symbol:"Al", name:"铝",   mass:26.982,  config:"[Ne]3s²3p¹",    eneg:1.61, oxStates:"+3",         category:"金属" },
-  { z:14, symbol:"Si", name:"硅",   mass:28.085,  config:"[Ne]3s²3p²",    eneg:1.90, oxStates:"-4, +2, +4", category:"非金属" },
-  { z:15, symbol:"P",  name:"磷",   mass:30.974,  config:"[Ne]3s²3p³",    eneg:2.19, oxStates:"-3, +3, +5", category:"非金属" },
-  { z:16, symbol:"S",  name:"硫",   mass:32.06,   config:"[Ne]3s²3p⁴",    eneg:2.58, oxStates:"-2, +2, +4, +6", category:"非金属" },
-  { z:17, symbol:"Cl", name:"氯",   mass:35.45,   config:"[Ne]3s²3p⁵",    eneg:3.16, oxStates:"-1, +1, +3, +5, +7", category:"卤素" },
-  { z:18, symbol:"Ar", name:"氩",   mass:39.95,   config:"[Ne]3s²3p⁶",    eneg:null, oxStates:"0",          category:"稀有气体" },
-  { z:19, symbol:"K",  name:"钾",   mass:39.098,  config:"[Ar]4s¹",       eneg:0.82, oxStates:"+1",         category:"碱金属" },
-  { z:20, symbol:"Ca", name:"钙",   mass:40.08,   config:"[Ar]4s²",       eneg:1.00, oxStates:"+2",         category:"碱土金属" },
-  { z:21, symbol:"Sc", name:"钪",   mass:44.956,  config:"[Ar]3d¹4s²",    eneg:1.36, oxStates:"+3",         category:"过渡金属" },
-  { z:22, symbol:"Ti", name:"钛",   mass:47.867,  config:"[Ar]3d²4s²",    eneg:1.54, oxStates:"+2, +3, +4", category:"过渡金属" },
-  { z:23, symbol:"V",  name:"钒",   mass:50.942,  config:"[Ar]3d³4s²",    eneg:1.63, oxStates:"+2, +3, +4, +5", category:"过渡金属" },
-  { z:24, symbol:"Cr", name:"铬",   mass:51.996,  config:"[Ar]3d⁵4s¹",    eneg:1.66, oxStates:"+2, +3, +6", category:"过渡金属" },
-  { z:25, symbol:"Mn", name:"锰",   mass:54.938,  config:"[Ar]3d⁵4s²",    eneg:1.55, oxStates:"+2, +3, +4, +6, +7", category:"过渡金属" },
-  { z:26, symbol:"Fe", name:"铁",   mass:55.845,  config:"[Ar]3d⁶4s²",    eneg:1.83, oxStates:"+2, +3",     category:"过渡金属" },
-  { z:27, symbol:"Co", name:"钴",   mass:58.933,  config:"[Ar]3d⁷4s²",    eneg:1.88, oxStates:"+2, +3",     category:"过渡金属" },
-  { z:28, symbol:"Ni", name:"镍",   mass:58.693,  config:"[Ar]3d⁸4s²",    eneg:1.91, oxStates:"+2",         category:"过渡金属" },
-  { z:29, symbol:"Cu", name:"铜",   mass:63.546,  config:"[Ar]3d¹⁰4s¹",   eneg:1.90, oxStates:"+1, +2",     category:"过渡金属" },
-  { z:30, symbol:"Zn", name:"锌",   mass:65.38,   config:"[Ar]3d¹⁰4s²",   eneg:1.65, oxStates:"+2",         category:"过渡金属" },
-  { z:31, symbol:"Ga", name:"镓",   mass:69.723,  config:"[Ar]3d¹⁰4s²4p¹",eneg:1.81, oxStates:"+3",         category:"金属" },
-  { z:32, symbol:"Ge", name:"锗",   mass:72.63,   config:"[Ar]3d¹⁰4s²4p²",eneg:2.01, oxStates:"-4, +2, +4", category:"非金属" },
-  { z:33, symbol:"As", name:"砷",   mass:74.922,  config:"[Ar]3d¹⁰4s²4p³",eneg:2.18, oxStates:"-3, +3, +5", category:"非金属" },
-  { z:34, symbol:"Se", name:"硒",   mass:78.96,   config:"[Ar]3d¹⁰4s²4p⁴",eneg:2.55, oxStates:"-2, +4, +6", category:"非金属" },
-  { z:35, symbol:"Br", name:"溴",   mass:79.904,  config:"[Ar]3d¹⁰4s²4p⁵",eneg:2.96, oxStates:"-1, +1, +3, +5, +7", category:"卤素" },
-  { z:36, symbol:"Kr", name:"氪",   mass:83.80,   config:"[Ar]3d¹⁰4s²4p⁶",eneg:3.00, oxStates:"0, +2",      category:"稀有气体" },
-  { z:37, symbol:"Rb", name:"铷",   mass:85.468,  config:"[Kr]5s¹",       eneg:0.82, oxStates:"+1",         category:"碱金属" },
-  { z:38, symbol:"Sr", name:"锶",   mass:87.62,   config:"[Kr]5s²",       eneg:0.95, oxStates:"+2",         category:"碱土金属" },
-  { z:39, symbol:"Y",  name:"钇",   mass:88.906,  config:"[Kr]4d¹5s²",    eneg:1.22, oxStates:"+3",         category:"过渡金属" },
-  { z:40, symbol:"Zr", name:"锆",   mass:91.224,  config:"[Kr]4d²5s²",    eneg:1.33, oxStates:"+4",         category:"过渡金属" },
-  { z:41, symbol:"Nb", name:"铌",   mass:92.906,  config:"[Kr]4d⁴5s¹",    eneg:1.60, oxStates:"+3, +5",     category:"过渡金属" },
-  { z:42, symbol:"Mo", name:"钼",   mass:95.95,   config:"[Kr]4d⁵5s¹",    eneg:2.16, oxStates:"+2, +3, +4, +5, +6", category:"过渡金属" },
-  { z:43, symbol:"Tc", name:"锝",   mass:98,      config:"[Kr]4d⁵5s²",    eneg:1.90, oxStates:"+4, +7",     category:"过渡金属" },
-  { z:44, symbol:"Ru", name:"钌",   mass:101.07,  config:"[Kr]4d⁷5s¹",    eneg:2.20, oxStates:"+3, +4",     category:"过渡金属" },
-  { z:45, symbol:"Rh", name:"铑",   mass:102.91,  config:"[Kr]4d⁸5s¹",    eneg:2.28, oxStates:"+3",         category:"过渡金属" },
-  { z:46, symbol:"Pd", name:"钯",   mass:106.42,  config:"[Kr]4d¹⁰",      eneg:2.20, oxStates:"+2, +4",     category:"过渡金属" },
-  { z:47, symbol:"Ag", name:"银",   mass:107.87,  config:"[Kr]4d¹⁰5s¹",   eneg:1.93, oxStates:"+1",         category:"过渡金属" },
-  { z:48, symbol:"Cd", name:"镉",   mass:112.41,  config:"[Kr]4d¹⁰5s²",   eneg:1.69, oxStates:"+2",         category:"过渡金属" },
-  { z:49, symbol:"In", name:"铟",   mass:114.82,  config:"[Kr]4d¹⁰5s²5p¹",eneg:1.78, oxStates:"+3",         category:"金属" },
-  { z:50, symbol:"Sn", name:"锡",   mass:118.71,  config:"[Kr]4d¹⁰5s²5p²",eneg:1.96, oxStates:"-4, +2, +4", category:"金属" },
-  { z:51, symbol:"Sb", name:"锑",   mass:121.76,  config:"[Kr]4d¹⁰5s²5p³",eneg:2.05, oxStates:"-3, +3, +5", category:"非金属" },
-  { z:52, symbol:"Te", name:"碲",   mass:127.60,  config:"[Kr]4d¹⁰5s²5p⁴",eneg:2.10, oxStates:"-2, +4, +6", category:"非金属" },
-  { z:53, symbol:"I",  name:"碘",   mass:126.90,  config:"[Kr]4d¹⁰5s²5p⁵",eneg:2.66, oxStates:"-1, +1, +3, +5, +7", category:"卤素" },
-  { z:54, symbol:"Xe", name:"氙",   mass:131.29,  config:"[Kr]4d¹⁰5s²5p⁶",eneg:2.60, oxStates:"0, +2, +4, +6, +8", category:"稀有气体" },
-  { z:55, symbol:"Cs", name:"铯",   mass:132.91,  config:"[Xe]6s¹",       eneg:0.79, oxStates:"+1",         category:"碱金属" },
-  { z:56, symbol:"Ba", name:"钡",   mass:137.33,  config:"[Xe]6s²",       eneg:0.89, oxStates:"+2",         category:"碱土金属" },
-  { z:57, symbol:"La", name:"镧",   mass:138.91,  config:"[Xe]5d¹6s²",    eneg:1.10, oxStates:"+3",         category:"镧系" },
-  { z:58, symbol:"Ce", name:"铈",   mass:140.12,  config:"[Xe]4f¹5d¹6s²", eneg:1.12, oxStates:"+3, +4",     category:"镧系" },
-  { z:59, symbol:"Pr", name:"镨",   mass:140.91,  config:"[Xe]4f³6s²",    eneg:1.13, oxStates:"+3",         category:"镧系" },
-  { z:60, symbol:"Nd", name:"钕",   mass:144.24,  config:"[Xe]4f⁴6s²",    eneg:1.14, oxStates:"+3",         category:"镧系" },
-  { z:62, symbol:"Sm", name:"钐",   mass:150.36,  config:"[Xe]4f⁶6s²",    eneg:1.17, oxStates:"+2, +3",     category:"镧系" },
-  { z:63, symbol:"Eu", name:"铕",   mass:151.96,  config:"[Xe]4f⁷6s²",    eneg:1.20, oxStates:"+2, +3",     category:"镧系" },
-  { z:64, symbol:"Gd", name:"钆",   mass:157.25,  config:"[Xe]4f⁷5d¹6s²", eneg:1.20, oxStates:"+3",         category:"镧系" },
-  { z:65, symbol:"Tb", name:"铽",   mass:158.93,  config:"[Xe]4f⁹6s²",    eneg:1.20, oxStates:"+3",         category:"镧系" },
-  { z:66, symbol:"Dy", name:"镝",   mass:162.50,  config:"[Xe]4f¹⁰6s²",   eneg:1.22, oxStates:"+3",         category:"镧系" },
-  { z:67, symbol:"Ho", name:"钬",   mass:164.93,  config:"[Xe]4f¹¹6s²",   eneg:1.23, oxStates:"+3",         category:"镧系" },
-  { z:68, symbol:"Er", name:"铒",   mass:167.26,  config:"[Xe]4f¹²6s²",   eneg:1.24, oxStates:"+3",         category:"镧系" },
-  { z:69, symbol:"Tm", name:"铥",   mass:168.93,  config:"[Xe]4f¹³6s²",   eneg:1.25, oxStates:"+3",         category:"镧系" },
-  { z:70, symbol:"Yb", name:"镱",   mass:173.04,  config:"[Xe]4f¹⁴6s²",   eneg:1.10, oxStates:"+2, +3",     category:"镧系" },
-  { z:71, symbol:"Lu", name:"镥",   mass:174.97,  config:"[Xe]4f¹⁴5d¹6s²",eneg:1.27, oxStates:"+3",         category:"镧系" },
-  { z:72, symbol:"Hf", name:"铪",   mass:178.49,  config:"[Xe]4f¹⁴5d²6s²",eneg:1.30, oxStates:"+4",         category:"过渡金属" },
-  { z:73, symbol:"Ta", name:"钽",   mass:180.95,  config:"[Xe]4f¹⁴5d³6s²",eneg:1.50, oxStates:"+5",         category:"过渡金属" },
-  { z:74, symbol:"W",  name:"钨",   mass:183.84,  config:"[Xe]4f¹⁴5d⁴6s²",eneg:2.36, oxStates:"+2, +3, +4, +5, +6", category:"过渡金属" },
-  { z:75, symbol:"Re", name:"铼",   mass:186.21,  config:"[Xe]4f¹⁴5d⁵6s²",eneg:1.90, oxStates:"+4, +7",     category:"过渡金属" },
-  { z:76, symbol:"Os", name:"锇",   mass:190.23,  config:"[Xe]4f¹⁴5d⁶6s²",eneg:2.20, oxStates:"+4, +6, +8", category:"过渡金属" },
-  { z:77, symbol:"Ir", name:"铱",   mass:192.22,  config:"[Xe]4f¹⁴5d⁷6s²",eneg:2.20, oxStates:"+3, +4",     category:"过渡金属" },
-  { z:78, symbol:"Pt", name:"铂",   mass:195.08,  config:"[Xe]4f¹⁴5d⁹6s¹",eneg:2.28, oxStates:"+2, +4",     category:"过渡金属" },
-  { z:79, symbol:"Au", name:"金",   mass:196.97,  config:"[Xe]4f¹⁴5d¹⁰6s¹",eneg:2.54, oxStates:"+1, +3",    category:"过渡金属" },
-  { z:80, symbol:"Hg", name:"汞",   mass:200.59,  config:"[Xe]4f¹⁴5d¹⁰6s²",eneg:2.00, oxStates:"+1, +2",    category:"过渡金属" },
-  { z:81, symbol:"Tl", name:"铊",   mass:204.38,  config:"[Xe]4f¹⁴5d¹⁰6s²6p¹",eneg:1.80, oxStates:"+1, +3",category:"金属" },
-  { z:82, symbol:"Pb", name:"铅",   mass:207.2,   config:"[Xe]4f¹⁴5d¹⁰6s²6p²",eneg:2.33, oxStates:"-4, +2, +4", category:"金属" },
-  { z:83, symbol:"Bi", name:"铋",   mass:208.98,  config:"[Xe]4f¹⁴5d¹⁰6s²6p³",eneg:2.02, oxStates:"+3",     category:"金属" },
-  { z:84, symbol:"Po", name:"钋",   mass:209,     config:"[Xe]4f¹⁴5d¹⁰6s²6p⁴",eneg:2.00, oxStates:"+2, +4",category:"非金属" },
-  { z:86, symbol:"Rn", name:"氡",   mass:222,     config:"[Xe]4f¹⁴5d¹⁰6s²6p⁶",eneg:2.20, oxStates:"0",      category:"稀有气体" },
-  { z:87, symbol:"Fr", name:"钫",   mass:223,     config:"[Rn]7s¹",       eneg:0.70, oxStates:"+1",         category:"碱金属" },
-  { z:88, symbol:"Ra", name:"镭",   mass:226,     config:"[Rn]7s²",       eneg:0.90, oxStates:"+2",         category:"碱土金属" },
-  { z:90, symbol:"Th", name:"钍",   mass:232.04,  config:"[Rn]6d²7s²",    eneg:1.30, oxStates:"+4",         category:"锕系" },
-  { z:92, symbol:"U",  name:"铀",   mass:238.03,  config:"[Rn]5f³6d¹7s²", eneg:1.38, oxStates:"+3, +4, +5, +6", category:"锕系" },
-  { z:94, symbol:"Pu", name:"钚",   mass:244,     config:"[Rn]5f⁶7s²",    eneg:1.28, oxStates:"+3, +4, +5, +6", category:"锕系" },
+  { z:1,  symbol:"H",  name:"氢",   mass:1.008,   config:"1s¹",           eneg:2.20, oxStates:"-1, +1",      category:"非金属",   mp:-259.16, bp:-252.88 },
+  { z:2,  symbol:"He", name:"氦",   mass:4.0026,  config:"1s²",           eneg:null, oxStates:"0",          category:"稀有气体", mp:null,     bp:-268.93 },
+  { z:3,  symbol:"Li", name:"锂",   mass:6.94,    config:"[He]2s¹",       eneg:0.98, oxStates:"+1",         category:"碱金属",   mp:180.5,   bp:1330 },
+  { z:4,  symbol:"Be", name:"铍",   mass:9.0122,  config:"[He]2s²",       eneg:1.57, oxStates:"+2",         category:"碱土金属", mp:1287,    bp:2469 },
+  { z:5,  symbol:"B",  name:"硼",   mass:10.81,   config:"[He]2s²2p¹",    eneg:2.04, oxStates:"+3",         category:"非金属",   mp:2076,    bp:3927 },
+  { z:6,  symbol:"C",  name:"碳",   mass:12.011,  config:"[He]2s²2p²",    eneg:2.55, oxStates:"-4, -3, -2, -1, +1, +2, +3, +4", category:"非金属", mp:3550, bp:4027 },
+  { z:7,  symbol:"N",  name:"氮",   mass:14.007,  config:"[He]2s²2p³",    eneg:3.04, oxStates:"-3, -2, -1, +1, +2, +3, +4, +5", category:"非金属", mp:-210.0, bp:-195.8 },
+  { z:8,  symbol:"O",  name:"氧",   mass:15.999,  config:"[He]2s²2p⁴",    eneg:3.44, oxStates:"-2, -1, +1, +2", category:"非金属", mp:-218.8, bp:-183.0 },
+  { z:9,  symbol:"F",  name:"氟",   mass:18.998,  config:"[He]2s²2p⁵",    eneg:3.98, oxStates:"-1",         category:"卤素",     mp:-219.67, bp:-188.11 },
+  { z:10, symbol:"Ne", name:"氖",   mass:20.180,  config:"[He]2s²2p⁶",    eneg:null, oxStates:"0",          category:"稀有气体", mp:-248.59, bp:-246.05 },
+  { z:11, symbol:"Na", name:"钠",   mass:22.990,  config:"[Ne]3s¹",       eneg:0.93, oxStates:"+1",         category:"碱金属",   mp:97.79,   bp:882.94 },
+  { z:12, symbol:"Mg", name:"镁",   mass:24.305,  config:"[Ne]3s²",       eneg:1.31, oxStates:"+2",         category:"碱土金属", mp:650,     bp:1090 },
+  { z:13, symbol:"Al", name:"铝",   mass:26.982,  config:"[Ne]3s²3p¹",    eneg:1.61, oxStates:"+3",         category:"金属",     mp:660.32,  bp:2519 },
+  { z:14, symbol:"Si", name:"硅",   mass:28.085,  config:"[Ne]3s²3p²",    eneg:1.90, oxStates:"-4, +2, +4", category:"非金属",   mp:1414,    bp:3265 },
+  { z:15, symbol:"P",  name:"磷",   mass:30.974,  config:"[Ne]3s²3p³",    eneg:2.19, oxStates:"-3, +3, +5", category:"非金属",   mp:44.15,   bp:280.5 },
+  { z:16, symbol:"S",  name:"硫",   mass:32.06,   config:"[Ne]3s²3p⁴",    eneg:2.58, oxStates:"-2, +2, +4, +6", category:"非金属", mp:115.21, bp:444.61 },
+  { z:17, symbol:"Cl", name:"氯",   mass:35.45,   config:"[Ne]3s²3p⁵",    eneg:3.16, oxStates:"-1, +1, +3, +5, +7", category:"卤素", mp:-101.5, bp:-34.04 },
+  { z:18, symbol:"Ar", name:"氩",   mass:39.95,   config:"[Ne]3s²3p⁶",    eneg:null, oxStates:"0",          category:"稀有气体", mp:-189.34, bp:-185.85 },
+  { z:19, symbol:"K",  name:"钾",   mass:39.098,  config:"[Ar]4s¹",       eneg:0.82, oxStates:"+1",         category:"碱金属",   mp:63.5,    bp:759 },
+  { z:20, symbol:"Ca", name:"钙",   mass:40.08,   config:"[Ar]4s²",       eneg:1.00, oxStates:"+2",         category:"碱土金属", mp:842,     bp:1484 },
+  { z:21, symbol:"Sc", name:"钪",   mass:44.956,  config:"[Ar]3d¹4s²",    eneg:1.36, oxStates:"+3",         category:"过渡金属", mp:1541,    bp:2836 },
+  { z:22, symbol:"Ti", name:"钛",   mass:47.867,  config:"[Ar]3d²4s²",    eneg:1.54, oxStates:"+2, +3, +4", category:"过渡金属", mp:1668,    bp:3287 },
+  { z:23, symbol:"V",  name:"钒",   mass:50.942,  config:"[Ar]3d³4s²",    eneg:1.63, oxStates:"+2, +3, +4, +5", category:"过渡金属", mp:1910, bp:3407 },
+  { z:24, symbol:"Cr", name:"铬",   mass:51.996,  config:"[Ar]3d⁵4s¹",    eneg:1.66, oxStates:"+2, +3, +6", category:"过渡金属", mp:1907, bp:2671 },
+  { z:25, symbol:"Mn", name:"锰",   mass:54.938,  config:"[Ar]3d⁵4s²",    eneg:1.55, oxStates:"+2, +3, +4, +6, +7", category:"过渡金属", mp:1246, bp:2061 },
+  { z:26, symbol:"Fe", name:"铁",   mass:55.845,  config:"[Ar]3d⁶4s²",    eneg:1.83, oxStates:"+2, +3",     category:"过渡金属", mp:1538,    bp:2861 },
+  { z:27, symbol:"Co", name:"钴",   mass:58.933,  config:"[Ar]3d⁷4s²",    eneg:1.88, oxStates:"+2, +3",     category:"过渡金属", mp:1495,    bp:2927 },
+  { z:28, symbol:"Ni", name:"镍",   mass:58.693,  config:"[Ar]3d⁸4s²",    eneg:1.91, oxStates:"+2",         category:"过渡金属", mp:1455,    bp:2913 },
+  { z:29, symbol:"Cu", name:"铜",   mass:63.546,  config:"[Ar]3d¹⁰4s¹",   eneg:1.90, oxStates:"+1, +2",     category:"过渡金属", mp:1084.62, bp:2562 },
+  { z:30, symbol:"Zn", name:"锌",   mass:65.38,   config:"[Ar]3d¹⁰4s²",   eneg:1.65, oxStates:"+2",         category:"过渡金属", mp:419.53,  bp:907 },
+  { z:31, symbol:"Ga", name:"镓",   mass:69.723,  config:"[Ar]3d¹⁰4s²4p¹",eneg:1.81, oxStates:"+3",         category:"金属",     mp:29.76,   bp:2204 },
+  { z:32, symbol:"Ge", name:"锗",   mass:72.63,   config:"[Ar]3d¹⁰4s²4p²",eneg:2.01, oxStates:"-4, +2, +4", category:"非金属",   mp:938.25,  bp:2833 },
+  { z:33, symbol:"As", name:"砷",   mass:74.922,  config:"[Ar]3d¹⁰4s²4p³",eneg:2.18, oxStates:"-3, +3, +5", category:"非金属",   mp:817,     bp:614 },
+  { z:34, symbol:"Se", name:"硒",   mass:78.96,   config:"[Ar]3d¹⁰4s²4p⁴",eneg:2.55, oxStates:"-2, +4, +6", category:"非金属",   mp:221,     bp:685 },
+  { z:35, symbol:"Br", name:"溴",   mass:79.904,  config:"[Ar]3d¹⁰4s²4p⁵",eneg:2.96, oxStates:"-1, +1, +3, +5, +7", category:"卤素", mp:-7.2, bp:58.8 },
+  { z:36, symbol:"Kr", name:"氪",   mass:83.80,   config:"[Ar]3d¹⁰4s²4p⁶",eneg:3.00, oxStates:"0, +2",      category:"稀有气体", mp:-157.37, bp:-153.42 },
+  { z:37, symbol:"Rb", name:"铷",   mass:85.468,  config:"[Kr]5s¹",       eneg:0.82, oxStates:"+1",         category:"碱金属",   mp:39.3,    bp:688 },
+  { z:38, symbol:"Sr", name:"锶",   mass:87.62,   config:"[Kr]5s²",       eneg:0.95, oxStates:"+2",         category:"碱土金属", mp:777,     bp:1377 },
+  { z:39, symbol:"Y",  name:"钇",   mass:88.906,  config:"[Kr]4d¹5s²",    eneg:1.22, oxStates:"+3",         category:"过渡金属", mp:1526,    bp:3345 },
+  { z:40, symbol:"Zr", name:"锆",   mass:91.224,  config:"[Kr]4d²5s²",    eneg:1.33, oxStates:"+4",         category:"过渡金属", mp:1855,    bp:4377 },
+  { z:41, symbol:"Nb", name:"铌",   mass:92.906,  config:"[Kr]4d⁴5s¹",    eneg:1.60, oxStates:"+3, +5",     category:"过渡金属", mp:2477,    bp:4744 },
+  { z:42, symbol:"Mo", name:"钼",   mass:95.95,   config:"[Kr]4d⁵5s¹",    eneg:2.16, oxStates:"+2, +3, +4, +5, +6", category:"过渡金属", mp:2623, bp:4639 },
+  { z:43, symbol:"Tc", name:"锝",   mass:98,      config:"[Kr]4d⁵5s²",    eneg:1.90, oxStates:"+4, +7",     category:"过渡金属", mp:2157,    bp:4265 },
+  { z:44, symbol:"Ru", name:"钌",   mass:101.07,  config:"[Kr]4d⁷5s¹",    eneg:2.20, oxStates:"+3, +4",     category:"过渡金属", mp:2334,    bp:4150 },
+  { z:45, symbol:"Rh", name:"铑",   mass:102.91,  config:"[Kr]4d⁸5s¹",    eneg:2.28, oxStates:"+3",         category:"过渡金属", mp:1964,    bp:3695 },
+  { z:46, symbol:"Pd", name:"钯",   mass:106.42,  config:"[Kr]4d¹⁰",      eneg:2.20, oxStates:"+2, +4",     category:"过渡金属", mp:1555,    bp:2963 },
+  { z:47, symbol:"Ag", name:"银",   mass:107.87,  config:"[Kr]4d¹⁰5s¹",   eneg:1.93, oxStates:"+1",         category:"过渡金属", mp:961.78,  bp:2162 },
+  { z:48, symbol:"Cd", name:"镉",   mass:112.41,  config:"[Kr]4d¹⁰5s²",   eneg:1.69, oxStates:"+2",         category:"过渡金属", mp:321.07,  bp:767 },
+  { z:49, symbol:"In", name:"铟",   mass:114.82,  config:"[Kr]4d¹⁰5s²5p¹",eneg:1.78, oxStates:"+3",         category:"金属",     mp:156.6,   bp:2072 },
+  { z:50, symbol:"Sn", name:"锡",   mass:118.71,  config:"[Kr]4d¹⁰5s²5p²",eneg:1.96, oxStates:"-4, +2, +4", category:"金属",     mp:231.93,  bp:2602 },
+  { z:51, symbol:"Sb", name:"锑",   mass:121.76,  config:"[Kr]4d¹⁰5s²5p³",eneg:2.05, oxStates:"-3, +3, +5", category:"非金属",   mp:630.63,  bp:1587 },
+  { z:52, symbol:"Te", name:"碲",   mass:127.60,  config:"[Kr]4d¹⁰5s²5p⁴",eneg:2.10, oxStates:"-2, +4, +6", category:"非金属",   mp:449.51,  bp:988 },
+  { z:53, symbol:"I",  name:"碘",   mass:126.90,  config:"[Kr]4d¹⁰5s²5p⁵",eneg:2.66, oxStates:"-1, +1, +3, +5, +7", category:"卤素", mp:113.7, bp:184.3 },
+  { z:54, symbol:"Xe", name:"氙",   mass:131.29,  config:"[Kr]4d¹⁰5s²5p⁶",eneg:2.60, oxStates:"0, +2, +4, +6, +8", category:"稀有气体", mp:-111.75, bp:-108.1 },
+  { z:55, symbol:"Cs", name:"铯",   mass:132.91,  config:"[Xe]6s¹",       eneg:0.79, oxStates:"+1",         category:"碱金属",   mp:28.5,    bp:671 },
+  { z:56, symbol:"Ba", name:"钡",   mass:137.33,  config:"[Xe]6s²",       eneg:0.89, oxStates:"+2",         category:"碱土金属", mp:727,     bp:1897 },
+  { z:57, symbol:"La", name:"镧",   mass:138.91,  config:"[Xe]5d¹6s²",    eneg:1.10, oxStates:"+3",         category:"镧系",     mp:920,     bp:3464 },
+  { z:58, symbol:"Ce", name:"铈",   mass:140.12,  config:"[Xe]4f¹5d¹6s²", eneg:1.12, oxStates:"+3, +4",     category:"镧系",     mp:795,     bp:3443 },
+  { z:59, symbol:"Pr", name:"镨",   mass:140.91,  config:"[Xe]4f³6s²",    eneg:1.13, oxStates:"+3",         category:"镧系",     mp:935,     bp:3520 },
+  { z:60, symbol:"Nd", name:"钕",   mass:144.24,  config:"[Xe]4f⁴6s²",    eneg:1.14, oxStates:"+3",         category:"镧系",     mp:1024,    bp:3074 },
+  { z:62, symbol:"Sm", name:"钐",   mass:150.36,  config:"[Xe]4f⁶6s²",    eneg:1.17, oxStates:"+2, +3",     category:"镧系",     mp:1072,    bp:1794 },
+  { z:63, symbol:"Eu", name:"铕",   mass:151.96,  config:"[Xe]4f⁷6s²",    eneg:1.20, oxStates:"+2, +3",     category:"镧系",     mp:826,     bp:1529 },
+  { z:64, symbol:"Gd", name:"钆",   mass:157.25,  config:"[Xe]4f⁷5d¹6s²", eneg:1.20, oxStates:"+3",         category:"镧系",     mp:1312,    bp:3273 },
+  { z:65, symbol:"Tb", name:"铽",   mass:158.93,  config:"[Xe]4f⁹6s²",    eneg:1.20, oxStates:"+3",         category:"镧系",     mp:1356,    bp:3230 },
+  { z:66, symbol:"Dy", name:"镝",   mass:162.50,  config:"[Xe]4f¹⁰6s²",   eneg:1.22, oxStates:"+3",         category:"镧系",     mp:1412,    bp:2567 },
+  { z:67, symbol:"Ho", name:"钬",   mass:164.93,  config:"[Xe]4f¹¹6s²",   eneg:1.23, oxStates:"+3",         category:"镧系",     mp:1474,    bp:2700 },
+  { z:68, symbol:"Er", name:"铒",   mass:167.26,  config:"[Xe]4f¹²6s²",   eneg:1.24, oxStates:"+3",         category:"镧系",     mp:1529,    bp:2868 },
+  { z:69, symbol:"Tm", name:"铥",   mass:168.93,  config:"[Xe]4f¹³6s²",   eneg:1.25, oxStates:"+3",         category:"镧系",     mp:1545,    bp:1950 },
+  { z:70, symbol:"Yb", name:"镱",   mass:173.04,  config:"[Xe]4f¹⁴6s²",   eneg:1.10, oxStates:"+2, +3",     category:"镧系",     mp:824,     bp:1196 },
+  { z:71, symbol:"Lu", name:"镥",   mass:174.97,  config:"[Xe]4f¹⁴5d¹6s²",eneg:1.27, oxStates:"+3",         category:"镧系",     mp:1663,    bp:3402 },
+  { z:72, symbol:"Hf", name:"铪",   mass:178.49,  config:"[Xe]4f¹⁴5d²6s²",eneg:1.30, oxStates:"+4",         category:"过渡金属", mp:2233,    bp:4603 },
+  { z:73, symbol:"Ta", name:"钽",   mass:180.95,  config:"[Xe]4f¹⁴5d³6s²",eneg:1.50, oxStates:"+5",         category:"过渡金属", mp:3017,    bp:5458 },
+  { z:74, symbol:"W",  name:"钨",   mass:183.84,  config:"[Xe]4f¹⁴5d⁴6s²",eneg:2.36, oxStates:"+2, +3, +4, +5, +6", category:"过渡金属", mp:3422, bp:5555 },
+  { z:75, symbol:"Re", name:"铼",   mass:186.21,  config:"[Xe]4f¹⁴5d⁵6s²",eneg:1.90, oxStates:"+4, +7",     category:"过渡金属", mp:3186,    bp:5596 },
+  { z:76, symbol:"Os", name:"锇",   mass:190.23,  config:"[Xe]4f¹⁴5d⁶6s²",eneg:2.20, oxStates:"+4, +6, +8", category:"过渡金属", mp:3033,    bp:5012 },
+  { z:77, symbol:"Ir", name:"铱",   mass:192.22,  config:"[Xe]4f¹⁴5d⁷6s²",eneg:2.20, oxStates:"+3, +4",     category:"过渡金属", mp:2446,    bp:4428 },
+  { z:78, symbol:"Pt", name:"铂",   mass:195.08,  config:"[Xe]4f¹⁴5d⁹6s¹",eneg:2.28, oxStates:"+2, +4",     category:"过渡金属", mp:1768.3,  bp:3825 },
+  { z:79, symbol:"Au", name:"金",   mass:196.97,  config:"[Xe]4f¹⁴5d¹⁰6s¹",eneg:2.54, oxStates:"+1, +3",    category:"过渡金属", mp:1064.18, bp:2856 },
+  { z:80, symbol:"Hg", name:"汞",   mass:200.59,  config:"[Xe]4f¹⁴5d¹⁰6s²",eneg:2.00, oxStates:"+1, +2",    category:"过渡金属", mp:-38.83,  bp:356.73 },
+  { z:81, symbol:"Tl", name:"铊",   mass:204.38,  config:"[Xe]4f¹⁴5d¹⁰6s²6p¹",eneg:1.80, oxStates:"+1, +3",category:"金属",   mp:304,     bp:1473 },
+  { z:82, symbol:"Pb", name:"铅",   mass:207.2,   config:"[Xe]4f¹⁴5d¹⁰6s²6p²",eneg:2.33, oxStates:"-4, +2, +4", category:"金属", mp:327.46, bp:1749 },
+  { z:83, symbol:"Bi", name:"铋",   mass:208.98,  config:"[Xe]4f¹⁴5d¹⁰6s²6p³",eneg:2.02, oxStates:"+3",     category:"金属",     mp:271.4,   bp:1564 },
+  { z:84, symbol:"Po", name:"钋",   mass:209,     config:"[Xe]4f¹⁴5d¹⁰6s²6p⁴",eneg:2.00, oxStates:"+2, +4",category:"非金属",   mp:254,     bp:962 },
+  { z:86, symbol:"Rn", name:"氡",   mass:222,     config:"[Xe]4f¹⁴5d¹⁰6s²6p⁶",eneg:2.20, oxStates:"0",      category:"稀有气体", mp:-71,     bp:-61.7 },
+  { z:87, symbol:"Fr", name:"钫",   mass:223,     config:"[Rn]7s¹",       eneg:0.70, oxStates:"+1",         category:"碱金属",   mp:27,      bp:677 },
+  { z:88, symbol:"Ra", name:"镭",   mass:226,     config:"[Rn]7s²",       eneg:0.90, oxStates:"+2",         category:"碱土金属", mp:700,     bp:1737 },
+  { z:90, symbol:"Th", name:"钍",   mass:232.04,  config:"[Rn]6d²7s²",    eneg:1.30, oxStates:"+4",         category:"锕系",     mp:1750,    bp:4788 },
+  { z:92, symbol:"U",  name:"铀",   mass:238.03,  config:"[Rn]5f³6d¹7s²", eneg:1.38, oxStates:"+3, +4, +5, +6", category:"锕系", mp:1132.2, bp:4131 },
+  { z:94, symbol:"Pu", name:"钚",   mass:244,     config:"[Rn]5f⁶7s²",    eneg:1.28, oxStates:"+3, +4, +5, +6", category:"锕系", mp:639.4, bp:3228 },
 ];
 
 const ELEMENT_MAP = new Map<string, ElementData>();
@@ -735,6 +737,52 @@ const CATEGORY_COLORS: Record<string, string> = {
   "锕系": "bg-pink-100 border-pink-300 text-pink-700",
 };
 
+// ── Helpers for element detail card ──
+
+function parseOxStates(oxStates: string): string[] {
+  return oxStates.split(",").map((s) => s.trim());
+}
+
+function oxStateColor(state: string): string {
+  if (state === "0") return "bg-slate-100 text-slate-500 border-slate-200";
+  if (state.startsWith("+")) return "bg-blue-50 text-blue-600 border-blue-200";
+  if (state.startsWith("-")) return "bg-red-50 text-red-500 border-red-200";
+  return "bg-slate-100 text-slate-500 border-slate-200";
+}
+
+const SUPER_DIGITS: Record<string, string> = {
+  "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
+  "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
+};
+
+function renderConfig(config: string): React.ReactNode {
+  const parts: (string | React.ReactElement)[] = [];
+  let i = 0;
+  while (i < config.length) {
+    if (SUPER_DIGITS[config[i]]) {
+      let digits = "";
+      while (i < config.length && SUPER_DIGITS[config[i]]) {
+        digits += SUPER_DIGITS[config[i]];
+        i++;
+      }
+      parts.push(<sup key={i - digits.length}>{digits}</sup>);
+    } else {
+      parts.push(config[i]);
+      i++;
+    }
+  }
+  return <>{parts}</>;
+}
+
+function DetailCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-slate-50 rounded-lg px-2.5 py-2 text-center border border-slate-100">
+      <div className="text-[10px] text-slate-400 mb-0.5">{label}</div>
+      <div className="text-xs font-mono font-semibold text-slate-700">{value}</div>
+    </div>
+  );
+}
+
 function PeriodicTable() {
   const [selected, setSelected] = useState<ElementData | null>(null);
   const [search, setSearch] = useState("");
@@ -808,39 +856,41 @@ function PeriodicTable() {
       )}
 
       {selected && (
-        <div className="bg-brand-50 rounded-lg border border-brand-200 p-4 mt-3">
-          <div className="flex items-center gap-3 mb-3">
-            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-lg border-2 text-sm font-bold ${CATEGORY_COLORS[selected.category] || ""}`}>
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 mt-3 max-w-lg">
+          <div className="flex items-center gap-3 mb-4">
+            <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl border-2 text-lg font-bold ${CATEGORY_COLORS[selected.category] || ""}`}>
               {selected.symbol}
             </span>
             <div>
-              <div className="font-semibold text-slate-800">{selected.name} ({selected.symbol})</div>
-              <div className="text-xs text-slate-500">{selected.category}</div>
+              <div className="font-semibold text-slate-800 text-base">{selected.name} ({selected.symbol})</div>
+              <div className="text-xs text-slate-500">{selected.category} · Z={selected.z}</div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex justify-between bg-white rounded-md px-2.5 py-1.5">
-              <span className="text-slate-500">原子序数</span>
-              <span className="font-mono font-semibold text-slate-700">{selected.z}</span>
-            </div>
-            <div className="flex justify-between bg-white rounded-md px-2.5 py-1.5">
-              <span className="text-slate-500">原子量</span>
-              <span className="font-mono font-semibold text-slate-700">{selected.mass}</span>
-            </div>
-            <div className="flex justify-between bg-white rounded-md px-2.5 py-1.5 col-span-2">
-              <span className="text-slate-500">电子构型</span>
-              <span className="font-mono font-semibold text-slate-700">{selected.config}</span>
-            </div>
-            {selected.eneg !== null && (
-              <div className="flex justify-between bg-white rounded-md px-2.5 py-1.5">
-                <span className="text-slate-500">电负性</span>
-                <span className="font-mono font-semibold text-slate-700">{selected.eneg.toFixed(2)}</span>
+
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <DetailCard label="原子序数" value={selected.z.toString()} />
+            <DetailCard label="原子量" value={selected.mass.toFixed(2)} />
+            <DetailCard label="电负性" value={selected.eneg !== null ? selected.eneg.toFixed(2) : "—"} />
+            <DetailCard label="熔点" value={selected.mp !== null ? `${selected.mp} °C` : "—"} />
+            <DetailCard label="沸点" value={selected.bp !== null ? `${selected.bp} °C` : "—"} />
+            <div className="bg-slate-50 rounded-lg px-2.5 py-2 text-center border border-slate-100">
+              <div className="text-[10px] text-slate-400 mb-0.5">电子构型</div>
+              <div className="text-xs font-mono font-semibold text-slate-700 break-all leading-tight">
+                {renderConfig(selected.config)}
               </div>
-            )}
-            <div className="flex justify-between bg-white rounded-md px-2.5 py-1.5 col-span-2">
-              <span className="text-slate-500">常见氧化态</span>
-              <span className="font-mono font-semibold text-slate-700">{selected.oxStates}</span>
             </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] text-slate-400 shrink-0">常见氧化态</span>
+            {parseOxStates(selected.oxStates).map((state, i) => (
+              <span
+                key={i}
+                className={`inline-block text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border ${oxStateColor(state)}`}
+              >
+                {state}
+              </span>
+            ))}
           </div>
         </div>
       )}

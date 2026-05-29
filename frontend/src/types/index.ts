@@ -232,6 +232,18 @@ export interface PredictionResult {
   error?: string;
 }
 
+// ── Experiment Records ──────────────────────────────────
+
+export interface ExperimentRecord {
+  id: string;
+  name: string;
+  date: string;
+  molecule: string;
+  conditions: string;
+  notes: string;
+  createdAt: string;
+}
+
 export interface AnnotatorQuality {
   [annotatorId: string]: {
     total: number;

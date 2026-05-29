@@ -8,20 +8,20 @@ interface Props {
 }
 
 const accentMap = {
-  default: "border-accent/40 bg-accent/5",
-  green: "border-emerald-500/40 bg-emerald-500/5",
-  amber: "border-amber-500/40 bg-amber-500/5",
-  red: "border-red-500/40 bg-red-500/5",
-  blue: "border-blue-500/40 bg-blue-500/5",
-  purple: "border-purple-500/40 bg-purple-500/5",
+  default: "border-slate-200 bg-white",
+  green: "border-emerald-200 bg-emerald-50",
+  amber: "border-amber-200 bg-amber-50",
+  red: "border-red-200 bg-red-50",
+  blue: "border-blue-200 bg-blue-50",
+  purple: "border-purple-200 bg-purple-50",
 };
 
 export default function StatCard({ label, value, sub, accent = "default" }: Props) {
   return (
     <div className={clsx("rounded-xl border p-4", accentMap[accent])}>
-      <div className="text-xs text-gray-400 uppercase tracking-wide">{label}</div>
-      <div className="text-2xl font-bold mt-1">{value}</div>
-      {sub && <div className="text-xs text-gray-500 mt-0.5">{sub}</div>}
+      <div className="text-xs text-slate-500 uppercase tracking-wide">{label}</div>
+      <div className="text-2xl font-bold mt-1 text-slate-800">{value}</div>
+      {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
     </div>
   );
 }
