@@ -1,7 +1,8 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { FlaskConical, BookOpen, Beaker, Calculator } from "lucide-react";
+import { FlaskConical, BookOpen, Beaker, Calculator, Brain } from "lucide-react";
 
 const nav = [
+  { to: "/agent", label: "AI 研究助手", icon: Brain },
   { to: "/database", label: "分子数据库", icon: FlaskConical },
   { to: "/literature", label: "文献调研", icon: BookOpen },
   { to: "/prediction", label: "性质预测", icon: Beaker },

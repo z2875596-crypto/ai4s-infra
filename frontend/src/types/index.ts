@@ -232,6 +232,31 @@ export interface PredictionResult {
   error?: string;
 }
 
+// ── Agent Research ─────────────────────────────────────
+
+export interface AgentStep {
+  step_type: "thought" | "action" | "observation" | "answer";
+  content: string;
+  tool_name: string | null;
+  created_at: number;
+}
+
+export interface AgentSession {
+  session_id: string;
+  title: string;
+  query: string;
+  steps: AgentStep[];
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AgentEvent {
+  type: "thought" | "action" | "observation" | "answer" | "error" | "done";
+  content: string;
+  tool_name: string | null;
+  step_index: number;
+}
+
 // ── Experiment Records ──────────────────────────────────
 
 export interface ExperimentRecord {

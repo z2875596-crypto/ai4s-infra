@@ -116,6 +116,31 @@ export const hpcAPI = {
   resolveAlert: (id: string) => post(`/hpc/alerts/${id}/resolve`),
 };
 
+// ── Agent Research ──────────────────────────────────────
+
+export const agentResearchAPI = {
+  run: (query: string, sessionId?: string, maxSteps?: number) => {
+    const base = "/api/agent";
+    return fetch(`${base}/run`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        session_id: sessionId || null,
+        max_steps: maxSteps || 10,
+      }),
+    });
+  },
+
+  listSessions: (limit?: number) =>
+    get<{ count: number; sessions: import("@/types").AgentSession[] }>(
+      `/agent/sessions?limit=${limit || 20}`
+    ),
+
+  getSession: (id: string) =>
+    get<import("@/types").AgentSession>(`/agent/sessions/${id}`),
+};
+
 // ── RLHF ────────────────────────────────────────────────
 
 export const rlhfAPI = {

@@ -25,6 +25,7 @@ from ai4s.common.metrics import MetricsRegistry
 
 from ai4s.data_infra.api import router as data_router
 from ai4s.agent_runtime.api import router as agent_router
+from ai4s.agent.router import router as agent_research_router
 
 logger = get_logger("ai4s.main")
 
@@ -34,6 +35,7 @@ _available_modules: dict[str, bool] = {
     "agent_runtime": True,
     "rlhf": False,
     "hpc_fusion": False,
+    "agent": True,
 }
 
 rlhf_router = None
@@ -91,6 +93,7 @@ app.add_middleware(
 
 app.include_router(data_router)
 app.include_router(agent_router)
+app.include_router(agent_research_router)
 if rlhf_router is not None:
     app.include_router(rlhf_router)
 if hpc_router is not None:
@@ -108,6 +111,7 @@ async def root():
             "data_infra": {"prefix": "/api/v1/data", "available": _available_modules["data_infra"]},
             "rlhf": {"prefix": "/api/v1/rlhf", "available": _available_modules["rlhf"]},
             "agent_runtime": {"prefix": "/api/v1/agent", "available": _available_modules["agent_runtime"]},
+            "agent": {"prefix": "/api/agent", "available": _available_modules["agent"]},
             "hpc_fusion": {"prefix": "/api/v1/hpc", "available": _available_modules["hpc_fusion"]},
         },
         "docs": "/docs",
