@@ -98,6 +98,26 @@ function StepCard({
                 {content}
               </ReactMarkdown>
             </div>
+          ) : type === "observation" && toolName === "search_literature" ? (
+            <div className="text-xs text-slate-600 leading-relaxed">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 no-underline hover:underline"
+                    >
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {content}
+              </ReactMarkdown>
+            </div>
           ) : (
             <div className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">{content}</div>
           )}
