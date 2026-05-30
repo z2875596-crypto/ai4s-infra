@@ -16,6 +16,30 @@ S2_BASE = "https://api.semanticscholar.org/graph/v1"
 S2_FIELDS = "title,authors,year,abstract,externalIds,url,venue,citationCount"
 
 
+def _filter_quality(papers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Quality filter: remove low-quality papers, sort by relevance.
+
+    - Remove papers with 0 citations AND year < 2015
+    - Sort by: high quality (year>=2020 and citations>20) first, then citations desc, year desc
+    """
+    filtered = []
+    for p in papers:
+        year = p.get("year") or 0
+        citations = p.get("citationCount") or 0
+        if citations == 0 and year < 2015:
+            continue
+        filtered.append(p)
+
+    def _sort_key(p: dict[str, Any]) -> tuple:
+        year = p.get("year") or 0
+        citations = p.get("citationCount") or 0
+        high_quality = 1 if year >= 2020 and citations > 20 else 0
+        return (high_quality, citations, year)
+
+    filtered.sort(key=_sort_key, reverse=True)
+    return filtered
+
+
 async def search_semantic_scholar(
     query: str,
     limit: int = 10,
@@ -23,7 +47,8 @@ async def search_semantic_scholar(
     year_to: str | None = None,
 ) -> dict[str, Any]:
     """Search Semantic Scholar for chemistry-related papers.
-    Falls back to CrossRef API if Semantic Scholar is unavailable."""
+    Falls back to CrossRef API if Semantic Scholar is unavailable.
+    Auto-retries CrossRef with wider time range if < 3 quality results."""
     limit = max(1, min(limit, 100))
     url = f"{S2_BASE}/paper/search"
     params: dict[str, Any] = {
@@ -42,12 +67,18 @@ async def search_semantic_scholar(
     from_s2 = await _try_s2(url, params, headers)
 
     if from_s2 is not None:
-        papers = from_s2
+        papers = _filter_quality(from_s2)
         source = "semantic_scholar"
     else:
         logger.warning("Semantic Scholar unavailable, falling back to CrossRef")
-        papers = await _search_crossref(query, limit)
+        # Try CrossRef with 2018+ filter, sorted by citation count
+        papers = _filter_quality(await _search_crossref(query, limit, year_from="2018"))
         source = "crossref"
+
+        # If fewer than 3 quality results, relax to 2015+
+        if len(papers) < 3:
+            logger.warning("Only %d quality results, retrying CrossRef with from-pub-date:2015", len(papers))
+            papers = _filter_quality(await _search_crossref(query, limit, year_from="2015"))
 
     return {
         "query": query,
@@ -60,10 +91,19 @@ async def search_semantic_scholar(
     }
 
 
-async def _search_crossref(query: str, limit: int = 5) -> list[dict[str, Any]]:
-    """Search CrossRef API as fallback — free, no API key required."""
+async def _search_crossref(
+    query: str, limit: int = 5, year_from: str | None = None
+) -> list[dict[str, Any]]:
+    """Search CrossRef API as fallback — free, no API key required.
+
+    Uses filter=from-pub-date and sort=is-referenced-by-count for quality results.
+    """
     url = "https://api.crossref.org/works"
-    params = {"query": query, "rows": min(limit, 20)}
+    params: dict[str, Any] = {"query": query, "rows": min(limit, 8)}
+    if year_from:
+        params["filter"] = f"from-pub-date:{year_from}"
+    params["sort"] = "is-referenced-by-count"
+    params["order"] = "desc"
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(15)) as client:
             resp = await client.get(url, params=params)

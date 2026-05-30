@@ -243,16 +243,15 @@ async def _execute_search_literature(args: dict[str, Any]) -> str:
         elif title:
             link_url = f"https://scholar.google.com/scholar?q={quote(title)}"
 
-        link_line = f"   [查看原文 →]({link_url})\n" if link_url else ""
+        link_line = f"[查看原文 →]({link_url})" if link_url else ""
 
         lines.append(
-            f"{i}. **{p.get('title', 'N/A')}**\n"
-            f"   作者: {authors} | 年份: {p.get('year', 'N/A')} | "
-            f"期刊: {p.get('venue', 'N/A')} | 引用: {p.get('citationCount', 0)}\n"
-            f"   摘要: {(p.get('abstract') or 'N/A')[:300]}...\n"
+            f"**{p.get('title', 'N/A')}**\n"
+            f"{authors} | {p.get('year', 'N/A')} | "
+            f"{p.get('venue', 'N/A')} | 引用: {p.get('citationCount', 0)}\n"
             f"{link_line}"
         )
-    return "\n".join(lines)
+    return "\n---\n".join(lines)
 
 
 async def _execute_search_pubchem(args: dict[str, Any]) -> str:
