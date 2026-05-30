@@ -143,6 +143,18 @@ export const agentResearchAPI = {
     if (!resp.ok) throw new Error(`${resp.status}: ${await resp.text()}`);
     return resp.json() as Promise<import("@/types").AgentSession>;
   },
+
+  deleteSession: async (id: string) => {
+    const resp = await fetch(`/api/agent/sessions/${id}`, { method: "DELETE" });
+    if (!resp.ok) throw new Error(`${resp.status}: ${await resp.text()}`);
+    return resp.json() as Promise<{ status: string; deleted: boolean }>;
+  },
+
+  deleteAllSessions: async () => {
+    const resp = await fetch(`/api/agent/sessions`, { method: "DELETE" });
+    if (!resp.ok) throw new Error(`${resp.status}: ${await resp.text()}`);
+    return resp.json() as Promise<{ status: string; deleted_count: number }>;
+  },
 };
 
 // ── RLHF ────────────────────────────────────────────────

@@ -130,13 +130,15 @@ function StepCard({
 /* ── Session History Sidebar ───────────────────────────── */
 
 function SessionList({
-  sessions, onSelect, onRefresh, loading, onNew,
+  sessions, onSelect, onRefresh, loading, onNew, onDelete, onDeleteAll,
 }: {
   sessions: AgentSession[];
   onSelect: (s: AgentSession) => void;
   onRefresh: () => void;
   loading: boolean;
   onNew: () => void;
+  onDelete: (sessionId: string) => void;
+  onDeleteAll: () => void;
 }) {
   return (
     <div className="bg-white w-60 shrink-0 border-r border-slate-200 hidden md:flex md:flex-col">
@@ -150,9 +152,20 @@ function SessionList({
       </div>
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
         <span className="text-xs font-semibold text-slate-500">历史会话</span>
-        <button onClick={onRefresh} className="text-slate-400 hover:text-slate-600" title="刷新">
-          <History className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          {sessions.length > 0 && (
+            <button
+              onClick={onDeleteAll}
+              className="text-slate-400 hover:text-red-500 transition-colors"
+              title="清除全部"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button onClick={onRefresh} className="text-slate-400 hover:text-slate-600" title="刷新">
+            <History className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
       {loading ? (
         <div className="p-4 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-slate-300" /></div>
@@ -161,16 +174,24 @@ function SessionList({
       ) : (
         <div className="flex-1 overflow-auto p-2 space-y-1">
           {sessions.map((s) => (
-            <button
-              key={s.session_id}
-              onClick={() => onSelect(s)}
-              className="w-full text-left p-2 rounded-lg hover:bg-blue-50 transition-colors"
-            >
-              <div className="text-xs font-medium text-slate-700 truncate">{s.title}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">
-                {s.steps.length} 步 · {new Date(s.created_at * 1000).toLocaleDateString("zh-CN")}
-              </div>
-            </button>
+            <div key={s.session_id} className="group relative">
+              <button
+                onClick={() => onSelect(s)}
+                className="w-full text-left p-2 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                <div className="text-xs font-medium text-slate-700 truncate">{s.title}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  {s.steps.length} 步 · {new Date(s.created_at * 1000).toLocaleDateString("zh-CN")}
+                </div>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(s.session_id); }}
+                className="absolute top-1.5 right-1.5 p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                title="删除此会话"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -444,6 +465,33 @@ export default function AgentConsole() {
     setQuery("");
   };
 
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!window.confirm("确定要删除此会话吗？")) return;
+    try {
+      await agentResearchAPI.deleteSession(sessionId);
+      // If viewing the deleted session, clear the view
+      if (currentSessionId === sessionId) {
+        setEvents([]);
+        setCurrentSessionId(null);
+      }
+      loadSessions();
+    } catch {
+      // silently fail
+    }
+  };
+
+  const handleDeleteAllSessions = async () => {
+    if (!window.confirm("确定要清除所有历史会话吗？此操作不可撤销。")) return;
+    try {
+      await agentResearchAPI.deleteAllSessions();
+      setEvents([]);
+      setCurrentSessionId(null);
+      loadSessions();
+    } catch {
+      // silently fail
+    }
+  };
+
   const handleExampleClick = (text: string) => setQuery(text);
 
   // Derived state
@@ -507,6 +555,8 @@ export default function AgentConsole() {
           onRefresh={loadSessions}
           loading={sessionsLoading}
           onNew={handleNewSession}
+          onDelete={handleDeleteSession}
+          onDeleteAll={handleDeleteAllSessions}
         />
         {/* Center — display + input */}
         <div className="flex-1 flex flex-col min-w-0">

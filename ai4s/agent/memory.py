@@ -151,6 +151,24 @@ class AgentMemory:
             for row in rows
         ]
 
+    # ── delete ────────────────────────────────────────────────────
+
+    def delete_session(self, session_id: str) -> bool:
+        """Delete a single session and its steps. Returns True if deleted."""
+        self._ensure_tables()
+        self.conn.execute("DELETE FROM steps WHERE session_id = ?", (session_id,))
+        cursor = self.conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+        self.conn.commit()
+        return cursor.rowcount > 0
+
+    def delete_all_sessions(self) -> int:
+        """Delete all sessions and steps. Returns number of deleted sessions."""
+        self._ensure_tables()
+        self.conn.execute("DELETE FROM steps")
+        cursor = self.conn.execute("DELETE FROM sessions")
+        self.conn.commit()
+        return cursor.rowcount
+
     # ── serialisation for API ─────────────────────────────────────
 
     def session_to_dict(self, session: Session) -> dict:

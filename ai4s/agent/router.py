@@ -119,3 +119,21 @@ async def get_session(session_id: str):
     if session is None:
         raise HTTPException(status_code=404, detail=f"会话 {session_id} 不存在")
     return memory.session_to_dict(session)
+
+
+@router.delete("/sessions")
+async def delete_all_sessions():
+    """Delete all research sessions."""
+    memory = get_memory()
+    count = memory.delete_all_sessions()
+    return {"status": "ok", "deleted_count": count}
+
+
+@router.delete("/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a single research session."""
+    memory = get_memory()
+    deleted = memory.delete_session(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"会话 {session_id} 不存在")
+    return {"status": "ok", "deleted": True}
