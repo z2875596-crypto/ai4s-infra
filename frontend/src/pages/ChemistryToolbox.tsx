@@ -774,6 +774,113 @@ function renderConfig(config: string): React.ReactNode {
   return <>{parts}</>;
 }
 
+// ── Period / Group helpers ──
+
+// Element Z → IUPAC group number (1-18)
+const ELEMENT_GROUP: Record<number, number> = {
+  1: 1, 2: 18,
+  3: 1, 4: 2, 5: 13, 6: 14, 7: 15, 8: 16, 9: 17, 10: 18,
+  11: 1, 12: 2, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 18: 18,
+  19: 1, 20: 2, 21: 3, 22: 4, 23: 5, 24: 6, 25: 7, 26: 8,
+  27: 9, 28: 10, 29: 11, 30: 12, 31: 13, 32: 14, 33: 15, 34: 16, 35: 17, 36: 18,
+  37: 1, 38: 2, 39: 3, 40: 4, 41: 5, 42: 6, 43: 7, 44: 8,
+  45: 9, 46: 10, 47: 11, 48: 12, 49: 13, 50: 14, 51: 15, 52: 16, 53: 17, 54: 18,
+  55: 1, 56: 2, 57: 3, 58: 3, 59: 3, 60: 3, 62: 3, 63: 3, 64: 3, 65: 3,
+  66: 3, 67: 3, 68: 3, 69: 3, 70: 3, 71: 3,
+  72: 4, 73: 5, 74: 6, 75: 7, 76: 8, 77: 9, 78: 10, 79: 11, 80: 12,
+  81: 13, 82: 14, 83: 15, 84: 16, 86: 18,
+  87: 1, 88: 2, 90: 3, 92: 3, 94: 3,
+};
+
+function getPeriod(z: number): number {
+  if (z <= 2) return 1;
+  if (z <= 10) return 2;
+  if (z <= 18) return 3;
+  if (z <= 36) return 4;
+  if (z <= 54) return 5;
+  if (z <= 86) return 6;
+  return 7;
+}
+
+// Format helpers for table cells
+function fmtMass(m: number) { return m.toFixed(1); }
+function fmtTemp(t: number | null) { return t !== null ? t.toString() : "—"; }
+function fmtEneg(e: number | null) { return e !== null ? e.toFixed(2) : "—"; }
+
+// ── Comparison table component ──
+
+function GroupPeriodTables({ element, selectedZ, group, period }: {
+  element: ElementData;
+  selectedZ: number;
+  group: number;
+  period: number;
+}) {
+  const groupEls = ELEMENTS
+    .filter((el) => ELEMENT_GROUP[el.z] === group)
+    .sort((a, b) => a.z - b.z);
+  const periodEls = ELEMENTS
+    .filter((el) => getPeriod(el.z) === period)
+    .sort((a, b) => a.z - b.z);
+
+  return (
+    <div className="space-y-4">
+      {/* Same group table */}
+      <div>
+        <div className="text-[10px] text-slate-400 font-medium mb-1.5">同族元素 (第 {group} 族)</div>
+        <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-2 py-1.5 text-left font-medium text-slate-500">符号</th>
+                <th className="px-2 py-1.5 text-right font-medium text-slate-500">原子量</th>
+                <th className="px-2 py-1.5 text-right font-medium text-slate-500">熔点 (°C)</th>
+                <th className="px-2 py-1.5 text-right font-medium text-slate-500">沸点 (°C)</th>
+                <th className="px-2 py-1.5 text-right font-medium text-slate-500">电负性</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupEls.map((el) => (
+                <tr key={el.z} className={`border-b border-slate-100 last:border-0 ${el.z === selectedZ ? "bg-blue-50" : ""}`}>
+                  <td className={`px-2 py-1.5 font-mono ${el.z === selectedZ ? "font-bold text-blue-700" : "text-slate-700"}`}>{el.symbol}</td>
+                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtMass(el.mass)}</td>
+                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtTemp(el.mp)}</td>
+                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtTemp(el.bp)}</td>
+                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtEneg(el.eneg)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Same period table */}
+      <div>
+        <div className="text-[10px] text-slate-400 font-medium mb-1.5">同周期元素 (第 {period} 周期)</div>
+        <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-2 py-1.5 text-left font-medium text-slate-500">符号</th>
+                <th className="px-2 py-1.5 text-right font-medium text-slate-500">原子量</th>
+                <th className="px-2 py-1.5 text-right font-medium text-slate-500">电负性</th>
+              </tr>
+            </thead>
+            <tbody>
+              {periodEls.map((el) => (
+                <tr key={el.z} className={`border-b border-slate-100 last:border-0 ${el.z === selectedZ ? "bg-blue-50" : ""}`}>
+                  <td className={`px-2 py-1.5 font-mono ${el.z === selectedZ ? "font-bold text-blue-700" : "text-slate-700"}`}>{el.symbol}</td>
+                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtMass(el.mass)}</td>
+                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtEneg(el.eneg)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DetailCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-slate-50 rounded-lg px-2.5 py-2 text-center border border-slate-100">
@@ -856,41 +963,49 @@ function PeriodicTable() {
       )}
 
       {selected && (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 mt-3 max-w-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl border-2 text-lg font-bold ${CATEGORY_COLORS[selected.category] || ""}`}>
-              {selected.symbol}
-            </span>
-            <div>
-              <div className="font-semibold text-slate-800 text-base">{selected.name} ({selected.symbol})</div>
-              <div className="text-xs text-slate-500">{selected.category} · Z={selected.z}</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            <DetailCard label="原子序数" value={selected.z.toString()} />
-            <DetailCard label="原子量" value={selected.mass.toFixed(2)} />
-            <DetailCard label="电负性" value={selected.eneg !== null ? selected.eneg.toFixed(2) : "—"} />
-            <DetailCard label="熔点" value={selected.mp !== null ? `${selected.mp} °C` : "—"} />
-            <DetailCard label="沸点" value={selected.bp !== null ? `${selected.bp} °C` : "—"} />
-            <div className="bg-slate-50 rounded-lg px-2.5 py-2 text-center border border-slate-100">
-              <div className="text-[10px] text-slate-400 mb-0.5">电子构型</div>
-              <div className="text-xs font-mono font-semibold text-slate-700 break-all leading-tight">
-                {renderConfig(selected.config)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+          {/* Left — element info card */}
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl border-2 text-lg font-bold ${CATEGORY_COLORS[selected.category] || ""}`}>
+                {selected.symbol}
+              </span>
+              <div>
+                <div className="font-semibold text-slate-800 text-base">{selected.name} ({selected.symbol})</div>
+                <div className="text-xs text-slate-500">{selected.category} · Z={selected.z}</div>
               </div>
             </div>
+
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <DetailCard label="原子序数" value={selected.z.toString()} />
+              <DetailCard label="原子量" value={selected.mass.toFixed(2)} />
+              <DetailCard label="电负性" value={selected.eneg !== null ? selected.eneg.toFixed(2) : "—"} />
+              <DetailCard label="熔点" value={selected.mp !== null ? `${selected.mp} °C` : "—"} />
+              <DetailCard label="沸点" value={selected.bp !== null ? `${selected.bp} °C` : "—"} />
+              <div className="bg-slate-50 rounded-lg px-2.5 py-2 text-center border border-slate-100">
+                <div className="text-[10px] text-slate-400 mb-0.5">电子构型</div>
+                <div className="text-xs font-mono font-semibold text-slate-700 break-all leading-tight">
+                  {renderConfig(selected.config)}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] text-slate-400 shrink-0">常见氧化态</span>
+              {parseOxStates(selected.oxStates).map((state, i) => (
+                <span
+                  key={i}
+                  className={`inline-block text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border ${oxStateColor(state)}`}
+                >
+                  {state}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] text-slate-400 shrink-0">常见氧化态</span>
-            {parseOxStates(selected.oxStates).map((state, i) => (
-              <span
-                key={i}
-                className={`inline-block text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border ${oxStateColor(state)}`}
-              >
-                {state}
-              </span>
-            ))}
+          {/* Right — group / period comparison tables */}
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+            <GroupPeriodTables element={selected} selectedZ={selected.z} group={ELEMENT_GROUP[selected.z]} period={getPeriod(selected.z)} />
           </div>
         </div>
       )}
