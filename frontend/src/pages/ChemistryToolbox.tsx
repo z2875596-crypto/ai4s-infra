@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Calculator, Search, X, Beaker, ChevronDown, ArrowLeft, ArrowLeftRight, Droplets, FlaskConical } from "lucide-react";
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 
 // ═══════════════════════════════════════════════════════════
 // Periodic Table Data
@@ -886,75 +887,70 @@ function getElementCategoryDesc(el: ElementData): string {
 
 // ── Comparison table component ──
 
-function GroupPeriodTables({ element, selectedZ, group, period }: {
-  element: ElementData;
-  selectedZ: number;
-  group: number;
-  period: number;
-}) {
+function GroupRadarChart({ selectedZ, group }: { selectedZ: number; group: number }) {
   const groupEls = ELEMENTS
     .filter((el) => ELEMENT_GROUP[el.z] === group)
     .sort((a, b) => a.z - b.z);
-  const periodEls = ELEMENTS
-    .filter((el) => getPeriod(el.z) === period)
-    .sort((a, b) => a.z - b.z);
+
+  const ranges = useMemo(() => {
+    const masses = ELEMENTS.map((e) => e.mass);
+    const mps = ELEMENTS.filter((e) => e.mp !== null).map((e) => e.mp!);
+    const bps = ELEMENTS.filter((e) => e.bp !== null).map((e) => e.bp!);
+    const enegs = ELEMENTS.filter((e) => e.eneg !== null).map((e) => e.eneg!);
+    const zs = ELEMENTS.map((e) => e.z);
+    return {
+      mass: { min: Math.min(...masses), max: Math.max(...masses) },
+      mp: { min: Math.min(...mps), max: Math.max(...mps) },
+      bp: { min: Math.min(...bps), max: Math.max(...bps) },
+      eneg: { min: Math.min(...enegs), max: Math.max(...enegs) },
+      z: { min: Math.min(...zs), max: Math.max(...zs) },
+    };
+  }, []);
+
+  const normalize = (v: number, r: { min: number; max: number }) =>
+    r.max === r.min ? 50 : ((v - r.min) / (r.max - r.min)) * 100;
+
+  const chartData = [
+    { axis: "原子量", ...Object.fromEntries(groupEls.map((el) => [el.symbol, normalize(el.mass, ranges.mass)])) },
+    { axis: "熔点", ...Object.fromEntries(groupEls.map((el) => [el.symbol, el.mp !== null ? normalize(el.mp, ranges.mp) : 0])) },
+    { axis: "沸点", ...Object.fromEntries(groupEls.map((el) => [el.symbol, el.bp !== null ? normalize(el.bp, ranges.bp) : 0])) },
+    { axis: "电负性", ...Object.fromEntries(groupEls.map((el) => [el.symbol, el.eneg !== null ? normalize(el.eneg, ranges.eneg) : 0])) },
+    { axis: "原子序数", ...Object.fromEntries(groupEls.map((el) => [el.symbol, normalize(el.z, ranges.z)])) },
+  ];
+
+  const maxEls = 10;
+  const displayEls = groupEls.length > maxEls
+    ? groupEls.filter((el) => el.z === selectedZ || groupEls.indexOf(el) < maxEls)
+    : groupEls;
 
   return (
-    <div className="space-y-5">
-      {/* Same group table */}
-      <div>
-        <div className="text-[11px] text-slate-400 font-medium mb-2">同族元素 (第 {group} 族)</div>
-        <div className="border border-slate-200 rounded-lg overflow-hidden">
-          <table className="w-full text-[15px]">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-3 py-2.5 text-left font-bold text-slate-500">符号</th>
-                <th className="px-3 py-2.5 text-right font-bold text-slate-500">原子量</th>
-                <th className="px-3 py-2.5 text-right font-bold text-slate-500">熔点 (°C)</th>
-                <th className="px-3 py-2.5 text-right font-bold text-slate-500">沸点 (°C)</th>
-                <th className="px-3 py-2.5 text-right font-bold text-slate-500">电负性</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groupEls.map((el) => (
-                <tr key={el.z} className={`border-b border-slate-100 last:border-0 ${el.z === selectedZ ? "bg-blue-50" : ""}`}>
-                  <td className={`px-3 py-3 font-mono font-semibold ${el.z === selectedZ ? "font-bold text-blue-700" : "text-slate-700"}`}>{el.symbol}</td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtMass(el.mass)}</td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtTemp(el.mp)}</td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtTemp(el.bp)}</td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtEneg(el.eneg)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Same period table */}
-      <div>
-        <div className="text-[11px] text-slate-400 font-medium mb-2">同周期元素 (第 {period} 周期)</div>
-        <div className="border border-slate-200 rounded-lg overflow-hidden">
-          <table className="w-full text-[15px]">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-3 py-2.5 text-left font-bold text-slate-500">符号</th>
-                <th className="px-3 py-2.5 text-left font-bold text-slate-500">名称</th>
-                <th className="px-3 py-2.5 text-right font-bold text-slate-500">原子量</th>
-                <th className="px-3 py-2.5 text-right font-bold text-slate-500">电负性</th>
-              </tr>
-            </thead>
-            <tbody>
-              {periodEls.map((el) => (
-                <tr key={el.z} className={`border-b border-slate-100 last:border-0 ${el.z === selectedZ ? "bg-blue-50" : ""}`}>
-                  <td className={`px-3 py-3 font-mono font-semibold ${el.z === selectedZ ? "font-bold text-blue-700" : "text-slate-700"}`}>{el.symbol}</td>
-                  <td className={`px-3 py-3 ${el.z === selectedZ ? "font-semibold text-blue-700" : "text-slate-600"}`}>{el.name}</td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtMass(el.mass)}</td>
-                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtEneg(el.eneg)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div className="w-full flex flex-col items-center">
+      <div className="text-xs font-semibold text-slate-500 mb-1">同族元素对比</div>
+      <ResponsiveContainer width="100%" height={300}>
+        <RadarChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+          <PolarGrid stroke="#e2e8f0" />
+          <PolarAngleAxis dataKey="axis" tick={{ fontSize: 10, fill: "#94a3b8" }} />
+          <PolarRadiusAxis tick={false} axisLine={false} />
+          {displayEls.map((el) => (
+            <Radar
+              key={el.symbol}
+              name={el.symbol}
+              dataKey={el.symbol}
+              stroke={el.z === selectedZ ? "#3b82f6" : "#cbd5e1"}
+              fill={el.z === selectedZ ? "#3b82f6" : "#cbd5e1"}
+              fillOpacity={0}
+              strokeWidth={el.z === selectedZ ? 2.5 : 1}
+              dot={el.z === selectedZ}
+            />
+          ))}
+        </RadarChart>
+      </ResponsiveContainer>
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1">
+        {displayEls.map((el) => (
+          <span key={el.symbol} className={`text-xs font-mono ${el.z === selectedZ ? "font-bold text-blue-600" : "text-slate-400"}`}>
+            {el.symbol}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -1088,9 +1084,9 @@ function PeriodicTable() {
             </div>
           </div>
 
-          {/* Right — group / period comparison tables */}
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 h-full flex flex-col">
-            <GroupPeriodTables element={selected} selectedZ={selected.z} group={ELEMENT_GROUP[selected.z]} period={getPeriod(selected.z)} />
+          {/* Right — group radar chart */}
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 h-full flex flex-col items-center justify-center">
+            <GroupRadarChart selectedZ={selected.z} group={ELEMENT_GROUP[selected.z]} />
           </div>
         </div>
       )}
