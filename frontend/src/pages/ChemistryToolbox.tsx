@@ -923,6 +923,8 @@ function GroupRadarChart({ selectedZ, group }: { selectedZ: number; group: numbe
     ? groupEls.filter((el) => el.z === selectedZ || groupEls.indexOf(el) < maxEls)
     : groupEls;
 
+  const CHART_COLORS = ["#F59E0B", "#10B981", "#8B5CF6", "#EF4444", "#EC4899", "#06B6D4", "#F97316", "#6366F1"];
+
   return (
     <div className="w-full flex flex-col items-center">
       <div className="text-xs font-semibold text-slate-500 mb-1">同族元素对比</div>
@@ -931,26 +933,37 @@ function GroupRadarChart({ selectedZ, group }: { selectedZ: number; group: numbe
           <PolarGrid stroke="#e2e8f0" />
           <PolarAngleAxis dataKey="axis" tick={{ fontSize: 10, fill: "#94a3b8" }} />
           <PolarRadiusAxis tick={false} axisLine={false} />
-          {displayEls.map((el) => (
-            <Radar
-              key={el.symbol}
-              name={el.symbol}
-              dataKey={el.symbol}
-              stroke={el.z === selectedZ ? "#3b82f6" : "#cbd5e1"}
-              fill={el.z === selectedZ ? "#3b82f6" : "#cbd5e1"}
-              fillOpacity={0}
-              strokeWidth={el.z === selectedZ ? 2.5 : 1}
-              dot={el.z === selectedZ}
-            />
-          ))}
+          {displayEls.map((el, i) => {
+            const selected = el.z === selectedZ;
+            const color = selected ? "#2563EB" : CHART_COLORS[i % CHART_COLORS.length];
+            return (
+              <Radar
+                key={el.symbol}
+                name={el.symbol}
+                dataKey={el.symbol}
+                stroke={color}
+                fill={color}
+                fillOpacity={0.15}
+                strokeWidth={selected ? 3 : 1.5}
+                dot={selected}
+              />
+            );
+          })}
         </RadarChart>
       </ResponsiveContainer>
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1">
-        {displayEls.map((el) => (
-          <span key={el.symbol} className={`text-xs font-mono ${el.z === selectedZ ? "font-bold text-blue-600" : "text-slate-400"}`}>
-            {el.symbol}
-          </span>
-        ))}
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-1">
+        {displayEls.map((el, i) => {
+          const selected = el.z === selectedZ;
+          const color = selected ? "#2563EB" : CHART_COLORS[i % CHART_COLORS.length];
+          return (
+            <span key={el.symbol} className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+              <span className={`text-xs font-mono ${selected ? "font-bold" : ""}`} style={{ color }}>
+                {el.symbol}
+              </span>
+            </span>
+          );
+        })}
       </div>
     </div>
   );
