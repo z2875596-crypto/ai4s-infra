@@ -14,6 +14,7 @@ import re
 import time
 import uuid
 from urllib.parse import quote
+from datetime import datetime
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from typing import Any
@@ -185,7 +186,9 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
     },
 ]
 
-SYSTEM_PROMPT = """你是一个化学研究 AI 助手，拥有以下能力：
+def _build_system_prompt() -> str:
+    current_year = datetime.now().year
+    return f"""你是一个化学研究 AI 助手，拥有以下能力：
 1. 搜索化学文献数据库获取最新研究进展
 2. 查询 PubChem 化合物数据库
 3. 预测分子的理化性质和 ADMET 参数
@@ -198,6 +201,7 @@ SYSTEM_PROMPT = """你是一个化学研究 AI 助手，拥有以下能力：
 - 综合所有结果，给出专业、结构化的最终报告
 
 报告要求：
+- 当前年份为 {current_year} 年，引用文献和生成报告时使用正确的年份
 - 使用 Markdown 格式
 - 包含数据表格（如有数值结果）
 - 引用文献时给出标题、作者、年份
@@ -520,7 +524,7 @@ class AgentOrchestrator:
 
         # Build message history
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": _build_system_prompt()},
             {"role": "user", "content": query},
         ]
 
