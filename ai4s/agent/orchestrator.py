@@ -558,9 +558,15 @@ class AgentOrchestrator:
                 print(f"\n=== DeepSeek 400 响应详情 ===\n{e.response.text}\n=== 响应结束 ===\n")
                 yield AgentEvent(type="error", content=f"API 调用失败: {e.response.status_code}", step_index=step_index)
                 return
+            except httpx.RequestError as e:
+                err_msg = str(e) or "连接失败，请检查网络或 API 地址配置"
+                logger.error("DeepSeek connection error: %s", err_msg)
+                yield AgentEvent(type="error", content=f"DeepSeek API 连接失败: {err_msg}", step_index=step_index)
+                return
             except Exception as e:
-                logger.error("DeepSeek request error: %s", e)
-                yield AgentEvent(type="error", content=f"请求失败: {e}", step_index=step_index)
+                err_msg = str(e) or "未知错误"
+                logger.error("DeepSeek request error: %s", err_msg)
+                yield AgentEvent(type="error", content=f"请求失败: {err_msg}", step_index=step_index)
                 return
 
             choice = result["choices"][0]
