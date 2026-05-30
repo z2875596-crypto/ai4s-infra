@@ -116,6 +116,73 @@ ELEMENTS.forEach((el) => {
   ELEMENT_MAP.set(el.symbol.toLowerCase(), el);
 });
 
+const ELEMENT_EN: Record<string, string> = {
+  H:"Hydrogen", He:"Helium", Li:"Lithium", Be:"Beryllium", B:"Boron", C:"Carbon", N:"Nitrogen",
+  O:"Oxygen", F:"Fluorine", Ne:"Neon", Na:"Sodium", Mg:"Magnesium", Al:"Aluminium",
+  Si:"Silicon", P:"Phosphorus", S:"Sulfur", Cl:"Chlorine", Ar:"Argon", K:"Potassium",
+  Ca:"Calcium", Sc:"Scandium", Ti:"Titanium", V:"Vanadium", Cr:"Chromium", Mn:"Manganese",
+  Fe:"Iron", Co:"Cobalt", Ni:"Nickel", Cu:"Copper", Zn:"Zinc", Ga:"Gallium", Ge:"Germanium",
+  As:"Arsenic", Se:"Selenium", Br:"Bromine", Kr:"Krypton", Rb:"Rubidium", Sr:"Strontium",
+  Y:"Yttrium", Zr:"Zirconium", Nb:"Niobium", Mo:"Molybdenum", Tc:"Technetium",
+  Ru:"Ruthenium", Rh:"Rhodium", Pd:"Palladium", Ag:"Silver", Cd:"Cadmium", In:"Indium",
+  Sn:"Tin", Sb:"Antimony", Te:"Tellurium", I:"Iodine", Xe:"Xenon", Cs:"Caesium",
+  Ba:"Barium", La:"Lanthanum", Ce:"Cerium", Pr:"Praseodymium", Nd:"Neodymium",
+  Sm:"Samarium", Eu:"Europium", Gd:"Gadolinium", Tb:"Terbium", Dy:"Dysprosium",
+  Ho:"Holmium", Er:"Erbium", Tm:"Thulium", Yb:"Ytterbium", Lu:"Lutetium",
+  Hf:"Hafnium", Ta:"Tantalum", W:"Tungsten", Re:"Rhenium", Os:"Osmium", Ir:"Iridium",
+  Pt:"Platinum", Au:"Gold", Hg:"Mercury", Tl:"Thallium", Pb:"Lead", Bi:"Bismuth",
+  Po:"Polonium", Rn:"Radon", Fr:"Francium", Ra:"Radium", Th:"Thorium", U:"Uranium",
+  Pu:"Plutonium",
+};
+
+const ELEMENT_USES: Record<string, string> = {
+  H:"用于合成氨、燃料电池、石油加氢精制和火箭燃料。", He:"用于低温冷却（超导磁体）、潜水呼吸气和检漏气体。",
+  Li:"用于锂离子电池、航空航天轻质合金和陶瓷添加剂。", Be:"用于航空航天结构材料、X射线窗口和中子减速剂。",
+  B:"用于硼硅酸盐玻璃、阻燃剂和半导体掺杂剂。", C:"用于钢铁冶炼、电极材料、复合材料和钻石饰品。",
+  N:"用于合成氨（化肥）、食品保鲜和电子工业保护气氛。", O:"用于医疗呼吸支持、钢铁冶炼和火箭推进剂。",
+  F:"用于牙膏添加剂、含氟聚合物（特氟龙）和制冷剂。", Ne:"用于霓虹灯、激光器和低温制冷剂。",
+  Na:"用于食盐、钠灯、冶金还原剂和化工原料。", Mg:"用于轻质合金（航空航天、汽车）和烟火材料。",
+  Al:"用于建筑材料、铝箔包装和航空航天合金。", Si:"用于半导体芯片、太阳能电池、玻璃和水泥。",
+  P:"用于化肥、火柴、洗涤剂和阻燃剂。", S:"用于硫酸生产、橡胶硫化和化肥。",
+  Cl:"用于自来水消毒、塑料（PVC）生产和漂白剂。", Ar:"用于焊接保护气和半导体制造保护气氛。",
+  K:"用于钾肥、玻璃制造和肥皂工业。", Ca:"用于建筑材料、骨骼健康和冶金脱硫。",
+  Sc:"用于航空航天铝合金和高强度运动器材。", Ti:"用于航空航天结构材料、医用植入物和耐腐蚀设备。",
+  V:"用于钢铁添加剂（钒钢）和钒电池储能。", Cr:"用于不锈钢、电镀和颜料。",
+  Mn:"用于钢铁冶炼脱氧剂和电池正极材料。", Fe:"用于建筑结构材料、机械制造和交通工具。",
+  Co:"用于电池正极材料、高温合金和磁性材料。", Ni:"用于不锈钢、镍氢电池和电镀。",
+  Cu:"用于电线电缆、管道和电子线路板。", Zn:"用于镀锌防腐蚀、锌基合金和干电池。",
+  Ga:"用于半导体（GaAs/GaN）、LED照明和高温温度计。", Ge:"用于光纤通讯、红外光学和半导体衬底。",
+  As:"用于半导体掺杂剂和合金添加剂。", Se:"用于玻璃着色、光电元件和硒鼓。",
+  Br:"用于阻燃剂、药品和摄影材料。", Kr:"用于荧光灯、高功率激光器和窗隔热层。",
+  Rb:"用于原子钟、光电管和特种玻璃。", Sr:"用于红色烟花、陶瓷磁性和牙齿护理。",
+  Y:"用于LED荧光粉（YAG）、超导材料和激光晶体。", Zr:"用于核反应堆包覆材料和耐腐蚀合金。",
+  Nb:"用于超导材料、特种钢添加剂。", Mo:"用于高强度合金、润滑剂添加剂和催化剂。",
+  Tc:"用于医疗放射性同位素（心肌显像）。", Ru:"用于电子元器件厚膜电阻和催化剂。",
+  Rh:"用于汽车催化转化器、珠宝镀层和热电偶。", Pd:"用于催化转化器、氢储存和电子接头。",
+  Ag:"用于珠宝首饰、电子浆料和感光材料。", Cd:"用于镍镉电池、颜料和镀层防腐。",
+  In:"用于透明电极（ITO触摸屏）、半导体和低温焊料。", Sn:"用于焊料、马口铁包装和青铜合金。",
+  Sb:"用于阻燃剂添加剂和铅酸电池。", Te:"用于热电材料、橡胶添加剂和蓝光光盘。",
+  I:"用于消毒剂、碘盐和医药。", Xe:"用于闪光灯、汽车头灯、麻醉剂和离子推进器。",
+  Cs:"用于原子钟（铯钟）和石油钻井液。", Ba:"用于白色颜料、钻井液和X射线造影剂。",
+  La:"用于光学玻璃、储氢合金和催化剂。", Ce:"用于汽车催化净化器、玻璃抛光粉。",
+  Pr:"用于磁铁合金、光纤放大器和陶瓷颜料。", Nd:"用于强力永磁体（NdFeB）和激光器。",
+  Sm:"用于磁性材料（SmCo磁铁）和核反应堆控制棒。", Eu:"用于荧光粉（红色荧光）和中子吸收剂。",
+  Gd:"用于MRI造影剂、磁致冷材料和控制棒。", Tb:"用于绿色荧光粉和磁致伸缩材料。",
+  Dy:"用于磁致伸缩材料（Terfenol-D）和控制棒。", Ho:"用于激光器和光纤放大器。",
+  Er:"用于光纤放大器（掺铒光纤）和激光美容。", Tm:"用于便携式X射线源和激光器。",
+  Yb:"用于光纤放大器、合金添加剂和压力传感器。", Lu:"用于催化剂和石油裂化。",
+  Hf:"用于核反应堆控制棒、高温合金和微电子栅极。", Ta:"用于耐腐蚀设备、高温合金和植入物。",
+  W:"用于灯丝、硬质合金刀具和电极。", Re:"用于高温合金（喷气发动机）和催化剂。",
+  Os:"用于硬质合金、钟表轴承和电接触点。", Ir:"用于高温坩埚、合金硬化和卫星推进器。",
+  Pt:"用于催化转化器、珠宝首饰和抗癌药物。", Au:"用于珠宝首饰、电子连接器和金条储备。",
+  Hg:"用于温度计、荧光灯和化学电极。", Tl:"用于电子器件、红外光学和超导材料。",
+  Pb:"用于铅酸电池、辐射屏蔽材料和焊料。", Bi:"用于低熔点合金、化妆品和胃药。",
+  Po:"用于核电池（航天器）和抗静电刷。", Rn:"用于癌症放疗和地震预测研究。",
+  Fr:"用于基础科学研究和放射性示踪。", Ra:"用于癌症放疗（历史用途）和发光涂料。",
+  Th:"用于核燃料研究和高温陶瓷。", U:"用于核电站核燃料、贫铀装甲。",
+  Pu:"用于核燃料（快中子堆）和核武器。",
+};
+
 // ═══════════════════════════════════════════════════════════
 // Molar Mass Parser
 // ═══════════════════════════════════════════════════════════
@@ -807,6 +874,16 @@ function fmtMass(m: number) { return m.toFixed(1); }
 function fmtTemp(t: number | null) { return t !== null ? t.toString() : "—"; }
 function fmtEneg(e: number | null) { return e !== null ? e.toFixed(2) : "—"; }
 
+function getElementCategoryDesc(el: ElementData): string {
+  const p = getPeriod(el.z);
+  const g = ELEMENT_GROUP[el.z];
+  let desc = `第 ${p} 周期${el.category}`;
+  const pge = [44, 45, 46, 76, 77, 78]; // Ru, Rh, Pd, Os, Ir, Pt
+  if (pge.includes(el.z)) desc += " · 铂族元素";
+  else if (g >= 3 && g <= 12 && el.category === "过渡金属") desc += ` · 第 ${g} 族`;
+  return desc;
+}
+
 // ── Comparison table component ──
 
 function GroupPeriodTables({ element, selectedZ, group, period }: {
@@ -823,29 +900,29 @@ function GroupPeriodTables({ element, selectedZ, group, period }: {
     .sort((a, b) => a.z - b.z);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Same group table */}
       <div>
-        <div className="text-[10px] text-slate-400 font-medium mb-1.5">同族元素 (第 {group} 族)</div>
+        <div className="text-[11px] text-slate-400 font-medium mb-2">同族元素 (第 {group} 族)</div>
         <div className="border border-slate-200 rounded-lg overflow-hidden">
-          <table className="w-full text-[11px]">
+          <table className="w-full text-[15px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-2 py-1.5 text-left font-medium text-slate-500">符号</th>
-                <th className="px-2 py-1.5 text-right font-medium text-slate-500">原子量</th>
-                <th className="px-2 py-1.5 text-right font-medium text-slate-500">熔点 (°C)</th>
-                <th className="px-2 py-1.5 text-right font-medium text-slate-500">沸点 (°C)</th>
-                <th className="px-2 py-1.5 text-right font-medium text-slate-500">电负性</th>
+                <th className="px-3 py-2.5 text-left font-bold text-slate-500">符号</th>
+                <th className="px-3 py-2.5 text-right font-bold text-slate-500">原子量</th>
+                <th className="px-3 py-2.5 text-right font-bold text-slate-500">熔点 (°C)</th>
+                <th className="px-3 py-2.5 text-right font-bold text-slate-500">沸点 (°C)</th>
+                <th className="px-3 py-2.5 text-right font-bold text-slate-500">电负性</th>
               </tr>
             </thead>
             <tbody>
               {groupEls.map((el) => (
                 <tr key={el.z} className={`border-b border-slate-100 last:border-0 ${el.z === selectedZ ? "bg-blue-50" : ""}`}>
-                  <td className={`px-2 py-1.5 font-mono ${el.z === selectedZ ? "font-bold text-blue-700" : "text-slate-700"}`}>{el.symbol}</td>
-                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtMass(el.mass)}</td>
-                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtTemp(el.mp)}</td>
-                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtTemp(el.bp)}</td>
-                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtEneg(el.eneg)}</td>
+                  <td className={`px-3 py-3 font-mono font-semibold ${el.z === selectedZ ? "font-bold text-blue-700" : "text-slate-700"}`}>{el.symbol}</td>
+                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtMass(el.mass)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtTemp(el.mp)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtTemp(el.bp)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtEneg(el.eneg)}</td>
                 </tr>
               ))}
             </tbody>
@@ -855,22 +932,24 @@ function GroupPeriodTables({ element, selectedZ, group, period }: {
 
       {/* Same period table */}
       <div>
-        <div className="text-[10px] text-slate-400 font-medium mb-1.5">同周期元素 (第 {period} 周期)</div>
+        <div className="text-[11px] text-slate-400 font-medium mb-2">同周期元素 (第 {period} 周期)</div>
         <div className="border border-slate-200 rounded-lg overflow-hidden">
-          <table className="w-full text-[11px]">
+          <table className="w-full text-[15px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-2 py-1.5 text-left font-medium text-slate-500">符号</th>
-                <th className="px-2 py-1.5 text-right font-medium text-slate-500">原子量</th>
-                <th className="px-2 py-1.5 text-right font-medium text-slate-500">电负性</th>
+                <th className="px-3 py-2.5 text-left font-bold text-slate-500">符号</th>
+                <th className="px-3 py-2.5 text-left font-bold text-slate-500">名称</th>
+                <th className="px-3 py-2.5 text-right font-bold text-slate-500">原子量</th>
+                <th className="px-3 py-2.5 text-right font-bold text-slate-500">电负性</th>
               </tr>
             </thead>
             <tbody>
               {periodEls.map((el) => (
                 <tr key={el.z} className={`border-b border-slate-100 last:border-0 ${el.z === selectedZ ? "bg-blue-50" : ""}`}>
-                  <td className={`px-2 py-1.5 font-mono ${el.z === selectedZ ? "font-bold text-blue-700" : "text-slate-700"}`}>{el.symbol}</td>
-                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtMass(el.mass)}</td>
-                  <td className="px-2 py-1.5 text-right font-mono text-slate-600">{fmtEneg(el.eneg)}</td>
+                  <td className={`px-3 py-3 font-mono font-semibold ${el.z === selectedZ ? "font-bold text-blue-700" : "text-slate-700"}`}>{el.symbol}</td>
+                  <td className={`px-3 py-3 ${el.z === selectedZ ? "font-semibold text-blue-700" : "text-slate-600"}`}>{el.name}</td>
+                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtMass(el.mass)}</td>
+                  <td className="px-3 py-3 text-right font-mono text-slate-600">{fmtEneg(el.eneg)}</td>
                 </tr>
               ))}
             </tbody>
@@ -965,13 +1044,14 @@ function PeriodicTable() {
       {selected && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
           {/* Left — element info card */}
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 h-full flex flex-col">
             <div className="flex items-center gap-3 mb-4">
               <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl border-2 text-lg font-bold ${CATEGORY_COLORS[selected.category] || ""}`}>
                 {selected.symbol}
               </span>
               <div>
                 <div className="font-semibold text-slate-800 text-base">{selected.name} ({selected.symbol})</div>
+                <div className="text-[11px] text-slate-400">{ELEMENT_EN[selected.symbol]}</div>
                 <div className="text-xs text-slate-500">{selected.category} · Z={selected.z}</div>
               </div>
             </div>
@@ -990,7 +1070,12 @@ function PeriodicTable() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="space-y-1.5 mb-3">
+              <p className="text-xs text-slate-500 leading-relaxed">{getElementCategoryDesc(selected)}</p>
+              <p className="text-xs text-slate-500 leading-relaxed">{ELEMENT_USES[selected.symbol]}</p>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap mt-auto">
               <span className="text-[10px] text-slate-400 shrink-0">常见氧化态</span>
               {parseOxStates(selected.oxStates).map((state, i) => (
                 <span
@@ -1004,7 +1089,7 @@ function PeriodicTable() {
           </div>
 
           {/* Right — group / period comparison tables */}
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+          <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 h-full flex flex-col">
             <GroupPeriodTables element={selected} selectedZ={selected.z} group={ELEMENT_GROUP[selected.z]} period={getPeriod(selected.z)} />
           </div>
         </div>
