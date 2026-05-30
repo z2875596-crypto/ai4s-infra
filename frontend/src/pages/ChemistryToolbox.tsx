@@ -971,9 +971,9 @@ function GroupRadarChart({ selectedZ, group }: { selectedZ: number; group: numbe
 
 function DetailCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-slate-50 rounded-lg px-2.5 py-2 text-center border border-slate-100">
-      <div className="text-[10px] text-slate-400 mb-0.5">{label}</div>
-      <div className="text-xs font-mono font-semibold text-slate-700">{value}</div>
+    <div className="bg-slate-50 rounded-lg px-2.5 py-2.5 text-center border border-slate-100">
+      <div className="text-xs text-slate-400 mb-0.5">{label}</div>
+      <div className="text-sm font-mono font-semibold text-slate-700">{value}</div>
     </div>
   );
 }
@@ -1060,8 +1060,8 @@ function PeriodicTable() {
               </span>
               <div>
                 <div className="font-semibold text-slate-800 text-base">{selected.name} ({selected.symbol})</div>
-                <div className="text-[11px] text-slate-400">{ELEMENT_EN[selected.symbol]}</div>
-                <div className="text-xs text-slate-500">{selected.category} · Z={selected.z}</div>
+                <div className="text-[15px] text-slate-400">{ELEMENT_EN[selected.symbol]}</div>
+                <div className="text-sm text-slate-500">{selected.category} · Z={selected.z}</div>
               </div>
             </div>
 
@@ -1072,24 +1072,24 @@ function PeriodicTable() {
               <DetailCard label="熔点" value={selected.mp !== null ? `${selected.mp} °C` : "—"} />
               <DetailCard label="沸点" value={selected.bp !== null ? `${selected.bp} °C` : "—"} />
               <div className="bg-slate-50 rounded-lg px-2.5 py-2 text-center border border-slate-100">
-                <div className="text-[10px] text-slate-400 mb-0.5">电子构型</div>
-                <div className="text-xs font-mono font-semibold text-slate-700 break-all leading-tight">
+                <div className="text-[11px] text-slate-400 mb-0.5">电子构型</div>
+                <div className="text-[13px] font-mono font-semibold text-slate-700 break-all leading-tight">
                   {renderConfig(selected.config)}
                 </div>
               </div>
             </div>
 
             <div className="space-y-1.5 mb-3">
-              <p className="text-xs text-slate-500 leading-relaxed">{getElementCategoryDesc(selected)}</p>
-              <p className="text-xs text-slate-500 leading-relaxed">{ELEMENT_USES[selected.symbol]}</p>
+              <p className="text-[15px] text-slate-500 leading-relaxed">{getElementCategoryDesc(selected)}</p>
+              <p className="text-[15px] text-slate-500 leading-relaxed">{ELEMENT_USES[selected.symbol]}</p>
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap mt-auto">
-              <span className="text-[10px] text-slate-400 shrink-0">常见氧化态</span>
+              <span className="text-[14px] text-slate-400 shrink-0">常见氧化态</span>
               {parseOxStates(selected.oxStates).map((state, i) => (
                 <span
                   key={i}
-                  className={`inline-block text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border ${oxStateColor(state)}`}
+                  className={`inline-block text-[13px] font-mono font-semibold px-2.5 py-1 rounded-full border ${oxStateColor(state)}`}
                 >
                   {state}
                 </span>
