@@ -34,6 +34,12 @@ function getStatusText(events: AgentEvent[], running: boolean): { text: string; 
   return { text: "正在分析问题…", step: 0 };
 }
 
+const EXAMPLE_QUERIES = [
+  "分析布洛芬的 ADMET 性质",
+  "研究钙钛矿太阳能电池最新进展",
+  "寻找 COX-2 抑制剂候选分子",
+];
+
 /* ── Step card colors ──────────────────────────────────── */
 
 const STEP_COLORS: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string; border: string; bg: string; dot: string }> = {
@@ -104,17 +110,26 @@ function StepCard({
 /* ── Session History Sidebar ───────────────────────────── */
 
 function SessionList({
-  sessions, onSelect, onRefresh, loading,
+  sessions, onSelect, onRefresh, loading, onNew,
 }: {
   sessions: AgentSession[];
   onSelect: (s: AgentSession) => void;
   onRefresh: () => void;
   loading: boolean;
+  onNew: () => void;
 }) {
   return (
-    <div className="border-t md:border-l md:border-t-0 border-slate-200 bg-white md:w-64 shrink-0 overflow-auto hidden md:block">
-      <div className="p-3 border-b border-slate-100 flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-600">历史会话</span>
+    <div className="bg-white w-60 shrink-0 border-r border-slate-200 hidden md:flex md:flex-col">
+      <div className="p-3 border-b border-slate-100">
+        <button
+          onClick={onNew}
+          className="w-full px-3 py-1.5 border border-blue-500 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5"
+        >
+          + 新建研究
+        </button>
+      </div>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
+        <span className="text-xs font-semibold text-slate-500">历史会话</span>
         <button onClick={onRefresh} className="text-slate-400 hover:text-slate-600" title="刷新">
           <History className="w-3.5 h-3.5" />
         </button>
@@ -124,12 +139,12 @@ function SessionList({
       ) : sessions.length === 0 ? (
         <p className="p-4 text-xs text-slate-400 text-center">暂无历史会话</p>
       ) : (
-        <div className="p-2 space-y-1">
+        <div className="flex-1 overflow-auto p-2 space-y-1">
           {sessions.map((s) => (
             <button
               key={s.session_id}
               onClick={() => onSelect(s)}
-              className="w-full text-left p-2 rounded-lg hover:bg-slate-50 transition-colors"
+              className="w-full text-left p-2 rounded-lg hover:bg-blue-50 transition-colors"
             >
               <div className="text-xs font-medium text-slate-700 truncate">{s.title}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">
@@ -253,6 +268,10 @@ export default function AgentConsole() {
 
   const reportRef = useRef<HTMLDivElement>(null);
 
+  // Derived state (declared before useEffects below that reference them)
+  const lastAnswer = useMemo(() => [...events].reverse().find((e) => e.type === "answer"), [events]);
+  const hasFinished = !running && !!lastAnswer;
+
   // Auto-scroll to bottom when new events arrive during run
   useEffect(() => {
     if (scrollRef.current && running) {
@@ -372,10 +391,17 @@ export default function AgentConsole() {
     }
   };
 
+  const handleNewSession = () => {
+    setEvents([]);
+    setError("");
+    setCurrentSessionId(null);
+    setQuery("");
+  };
+
+  const handleExampleClick = (text: string) => setQuery(text);
+
   // Derived state
   const statusInfo = useMemo(() => getStatusText(events, running), [events, running]);
-  const lastAnswer = useMemo(() => [...events].reverse().find((e) => e.type === "answer"), [events]);
-  const hasFinished = !running && !!lastAnswer;
 
   return (
     <div>
@@ -428,15 +454,23 @@ export default function AgentConsole() {
 
       {/* ── Main area with sidebar ── */}
       <div className="flex flex-col md:flex-row gap-0 rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white" style={{ minHeight: 600 }}>
+        {/* Session sidebar — left */}
+        <SessionList
+          sessions={sessions}
+          onSelect={viewSession}
+          onRefresh={loadSessions}
+          loading={sessionsLoading}
+          onNew={handleNewSession}
+        />
         {/* Center — display + input */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Input */}
-          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-            <div className="flex gap-2">
+          <div className="p-3 border-b border-slate-100 bg-white">
+            <div className="flex gap-2 items-start">
               <div className="flex-1 relative">
                 <textarea
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
-                  rows={2}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                  rows={1}
                   placeholder="输入研究问题，如：请查找阿司匹林的分子性质、预测其ADMET参数，并搜索相关最新研究文献..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -444,22 +478,22 @@ export default function AgentConsole() {
                   disabled={running}
                 />
               </div>
-              <div className="flex flex-col gap-1.5 shrink-0">
+              <div className="flex gap-1.5 shrink-0">
                 {running ? (
                   <button
                     onClick={handleStop}
-                    className="flex-1 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs font-medium flex items-center gap-1.5 min-w-[80px] justify-center"
+                    className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs font-medium flex items-center gap-1 min-w-[72px] justify-center"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3 h-3" />
                     停止
                   </button>
                 ) : (
                   <button
                     onClick={handleSubmit}
                     disabled={!query.trim()}
-                    className="flex-1 px-4 py-2 bg-brand-700 text-white rounded-lg hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs font-medium flex items-center gap-1.5 min-w-[80px] justify-center"
+                    className="px-3 py-1.5 bg-brand-700 text-white rounded-lg hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs font-medium flex items-center gap-1 min-w-[72px] justify-center"
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    <Send className="w-3 h-3" />
                     提交
                   </button>
                 )}
@@ -474,9 +508,22 @@ export default function AgentConsole() {
           <div ref={scrollRef} className="flex-1 overflow-auto p-4 space-y-2.5">
             {/* Empty state */}
             {events.length === 0 && !running && !error && (
-              <div className="flex flex-col items-center justify-center h-full text-slate-300 gap-3">
-                <Brain className="w-10 h-10" />
-                <p className="text-sm">输入研究问题，启动 AI Agent 推理</p>
+              <div className="flex flex-col items-center justify-center h-full gap-6 py-16">
+                <div className="flex flex-col items-center gap-2 text-slate-300">
+                  <Brain className="w-8 h-8" />
+                  <p className="text-sm">选择示例课题或输入自定义研究问题</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl">
+                  {EXAMPLE_QUERIES.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => handleExampleClick(q)}
+                      className="bg-white border border-slate-200 rounded-lg px-4 py-3 text-xs text-slate-600 hover:border-blue-400 hover:text-blue-600 transition-colors text-left leading-relaxed"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -530,13 +577,6 @@ export default function AgentConsole() {
           </div>
         </div>
 
-        {/* Session sidebar */}
-        <SessionList
-          sessions={sessions}
-          onSelect={viewSession}
-          onRefresh={loadSessions}
-          loading={sessionsLoading}
-        />
       </div>
 
       {/* Hints */}
