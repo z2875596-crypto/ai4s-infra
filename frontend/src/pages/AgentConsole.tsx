@@ -219,6 +219,55 @@ function ReportTR({ children, index }: { children: React.ReactNode; index: numbe
 function ResearchReport({ content }: { content: string }) {
   let trIndex = 0;
 
+  // Convert [DOI: 10.xxxx/xxxx] → clickable markdown links
+  const processed = content.replace(
+    /\[DOI:\s*(10\.\S+?)\]/g,
+    '[查看原文 →](https://doi.org/$1)'
+  );
+
+  // Split by --- to wrap paper sections as cards
+  const sections = processed.split(/\n---+\n/).filter(Boolean);
+
+  const markdownComponent = (md: string) => (
+    <div className="prose prose-sm sm:prose-base max-w-none text-slate-700
+      prose-headings:text-slate-800
+      prose-h2:text-lg sm:prose-h2:text-xl prose-h2:font-bold
+        prose-h2:mt-10 prose-h2:mb-6 prose-h2:pt-8
+        prose-h2:border-t prose-h2:border-slate-200
+        prose-h2:pb-2 prose-h2:border-b prose-h2:border-slate-200
+      prose-h3:text-base sm:prose-h3:text-lg prose-h3:font-semibold
+        prose-h3:mt-8 prose-h3:mb-3
+      prose-a:text-brand-600 prose-a:underline
+      prose-code:text-rose-600 prose-code:bg-slate-100
+        prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+        prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
+      prose-pre:bg-slate-800 prose-pre:text-emerald-300
+        prose-pre:rounded-lg prose-pre:p-4 prose-pre:text-xs sm:prose-pre:text-sm
+        prose-pre:overflow-x-auto
+      prose-p:text-sm sm:prose-p:text-base prose-p:leading-relaxed prose-p:mb-4
+      prose-li:text-sm sm:prose-li:text-base prose-li:leading-relaxed prose-li:mb-1
+      prose-strong:font-semibold prose-strong:text-slate-800
+      prose-em:text-slate-600
+    ">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          table: ({ children }) => <ReportTable>{children}</ReportTable>,
+          thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
+          tbody: ({ children }) => <tbody>{children}</tbody>,
+          th: ({ children }) => <ReportTH>{children}</ReportTH>,
+          td: ({ children }) => <ReportTD>{children}</ReportTD>,
+          tr: ({ children }) => {
+            const idx = trIndex++;
+            return <ReportTR index={idx}>{children}</ReportTR>;
+          },
+        }}
+      >
+        {md}
+      </ReactMarkdown>
+    </div>
+  );
+
   return (
     <div className="bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden mt-6">
       {/* Report header */}
@@ -231,43 +280,20 @@ function ResearchReport({ content }: { content: string }) {
       </div>
       {/* Report body — responsive padding & spacing */}
       <div className="px-4 sm:px-6 md:px-8 py-5 sm:py-7">
-        <div className="prose prose-sm sm:prose-base max-w-none text-slate-700
-          prose-headings:text-slate-800
-          prose-h2:text-lg sm:prose-h2:text-xl prose-h2:font-bold
-            prose-h2:mt-10 prose-h2:mb-6 prose-h2:pt-8
-            prose-h2:border-t prose-h2:border-slate-200
-            prose-h2:pb-2 prose-h2:border-b prose-h2:border-slate-200
-          prose-h3:text-base sm:prose-h3:text-lg prose-h3:font-semibold
-            prose-h3:mt-8 prose-h3:mb-3
-          prose-a:text-brand-600 prose-a:underline
-          prose-code:text-rose-600 prose-code:bg-slate-100
-            prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-            prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
-          prose-pre:bg-slate-800 prose-pre:text-emerald-300
-            prose-pre:rounded-lg prose-pre:p-4 prose-pre:text-xs sm:prose-pre:text-sm
-            prose-pre:overflow-x-auto
-          prose-p:text-sm sm:prose-p:text-base prose-p:leading-relaxed prose-p:mb-4
-          prose-li:text-sm sm:prose-li:text-base prose-li:leading-relaxed prose-li:mb-1
-          prose-strong:font-semibold prose-strong:text-slate-800
-          prose-em:text-slate-600
-        ">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              table: ({ children }) => <ReportTable>{children}</ReportTable>,
-              thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
-              tbody: ({ children }) => <tbody>{children}</tbody>,
-              th: ({ children }) => <ReportTH>{children}</ReportTH>,
-              td: ({ children }) => <ReportTD>{children}</ReportTD>,
-              tr: ({ children }) => {
-                const idx = trIndex++;
-                return <ReportTR index={idx}>{children}</ReportTR>;
-              },
-            }}
-          >
-            {content}
-          </ReactMarkdown>
-        </div>
+        {sections.length > 1 ? (
+          <div className="space-y-4">
+            {sections.map((section, i) => (
+              <div
+                key={i}
+                className="border border-slate-200 rounded-xl bg-white shadow-sm p-4 sm:p-5"
+              >
+                {markdownComponent(section)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          markdownComponent(processed)
+        )}
       </div>
     </div>
   );
