@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Calculator, Search, X, Beaker, ChevronDown } from "lucide-react";
+import { Calculator, Search, X, Beaker, ChevronDown, ArrowLeft, ArrowLeftRight, Droplets, FlaskConical } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════
 // Periodic Table Data
@@ -1253,51 +1253,88 @@ function BufferCalculator() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Navigation
+// ═══════════════════════════════════════════════════════════
+
+type ToolId = "molar-mass" | "solution" | "ph" | "unit" | "periodic" | "buffer";
+
+const TOOL_INFO: { id: ToolId; name: string; icon: React.ComponentType<{ className?: string }>; desc: string }[] = [
+  { id: "molar-mass", name: "摩尔质量计算器", icon: Calculator, desc: "计算化学式的摩尔质量和质量组成百分比" },
+  { id: "solution", name: "溶液配制计算器", icon: Beaker, desc: "计算配制目标浓度溶液所需的溶质质量" },
+  { id: "ph", name: "pH 计算器", icon: Droplets, desc: "计算强酸、弱酸和碱溶液的 pH 值" },
+  { id: "unit", name: "单位换算", icon: ArrowLeftRight, desc: "能量、压强、温度、波长等常见单位换算" },
+  { id: "periodic", name: "元素周期表查询", icon: Search, desc: "查询元素的详细信息、电子构型、物理性质等" },
+  { id: "buffer", name: "缓冲溶液计算器", icon: FlaskConical, desc: "使用 Henderson-Hasselbalch 方程计算缓冲液 pH" },
+];
+
+function renderTool(id: ToolId) {
+  switch (id) {
+    case "molar-mass": return <MolarMassCalculator />;
+    case "solution": return <SolutionCalculator />;
+    case "ph": return <PHCalculator />;
+    case "unit": return <UnitConverter />;
+    case "periodic": return <PeriodicTable />;
+    case "buffer": return <BufferCalculator />;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // Main Page
 // ═══════════════════════════════════════════════════════════
 
 export default function ChemistryToolbox() {
+  const [selected, setSelected] = useState<ToolId | null>(null);
+
+  if (selected) {
+    const info = TOOL_INFO.find((t) => t.id === selected)!;
+    const Icon = info.icon;
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">化学计算工具箱</h1>
+            <p className="text-sm text-slate-500 mt-1">实用化学计算工具集</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setSelected(null)}
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 mb-4 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          返回工具箱
+        </button>
+        <ToolCard icon={Icon} title={info.name}>
+          {renderTool(selected)}
+        </ToolCard>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-slate-800">化学计算工具箱</h1>
-          <p className="text-sm text-slate-500 mt-1">实用化学计算工具集</p>
+          <p className="text-sm text-slate-500 mt-1">选择工具开始使用</p>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Row 1 */}
-        <ToolCard icon={Calculator} title="摩尔质量计算器">
-          <MolarMassCalculator />
-        </ToolCard>
-
-        <ToolCard icon={Beaker} title="溶液配制计算器">
-          <SolutionCalculator />
-        </ToolCard>
-
-        {/* Row 2 */}
-        <ToolCard icon={Calculator} title="pH 计算器">
-          <PHCalculator />
-        </ToolCard>
-
-        <ToolCard icon={Calculator} title="单位换算">
-          <UnitConverter />
-        </ToolCard>
-
-        {/* Row 3 - Periodic Table (full width) */}
-        <div className="lg:col-span-2">
-          <ToolCard icon={Search} title="元素周期表查询">
-            <PeriodicTable />
-          </ToolCard>
-        </div>
-
-        {/* Row 4 */}
-        <div className="lg:col-span-2">
-          <ToolCard icon={Beaker} title="缓冲溶液计算器 (Henderson-Hasselbalch)">
-            <BufferCalculator />
-          </ToolCard>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {TOOL_INFO.map((tool) => {
+          const Icon = tool.icon;
+          return (
+            <button
+              key={tool.id}
+              onClick={() => setSelected(tool.id)}
+              className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:border-blue-300 hover:shadow-md transition-all text-left group"
+            >
+              <div className="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center mb-3 group-hover:bg-brand-200 transition-colors">
+                <Icon className="w-5 h-5 text-brand-700" />
+              </div>
+              <div className="font-semibold text-sm text-slate-800 mb-1">{tool.name}</div>
+              <div className="text-xs text-slate-500 leading-relaxed">{tool.desc}</div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
