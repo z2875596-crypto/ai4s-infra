@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Calculator, Search, X, Beaker, ChevronDown, ArrowLeft, ArrowLeftRight, Droplets, FlaskConical } from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 
@@ -265,6 +265,205 @@ function mergeElements(parsed: { el: ElementData; count: number }[]): { el: Elem
 }
 
 // ═══════════════════════════════════════════════════════════
+// Chinese Compound Dictionary (100+ entries)
+// ═══════════════════════════════════════════════════════════
+
+interface CompoundEntry {
+  name: string;
+  formula: string;
+}
+
+const COMPOUND_LIST: CompoundEntry[] = [
+  // ── 无机物 ──
+  { name: "水", formula: "H2O" },
+  { name: "氯化钠", formula: "NaCl" },
+  { name: "硫酸", formula: "H2SO4" },
+  { name: "盐酸", formula: "HCl" },
+  { name: "硝酸", formula: "HNO3" },
+  { name: "磷酸", formula: "H3PO4" },
+  { name: "氢氧化钠", formula: "NaOH" },
+  { name: "氢氧化钾", formula: "KOH" },
+  { name: "氢氧化钙", formula: "Ca(OH)2" },
+  { name: "氢氧化镁", formula: "Mg(OH)2" },
+  { name: "氢氧化铝", formula: "Al(OH)3" },
+  { name: "二氧化碳", formula: "CO2" },
+  { name: "一氧化碳", formula: "CO" },
+  { name: "二氧化硫", formula: "SO2" },
+  { name: "三氧化硫", formula: "SO3" },
+  { name: "氨气", formula: "NH3" },
+  { name: "碳酸钙", formula: "CaCO3" },
+  { name: "碳酸钠", formula: "Na2CO3" },
+  { name: "碳酸氢钠", formula: "NaHCO3" },
+  { name: "碳酸氢铵", formula: "NH4HCO3" },
+  { name: "硫酸铜", formula: "CuSO4" },
+  { name: "硫酸亚铁", formula: "FeSO4" },
+  { name: "硫酸铁", formula: "Fe2(SO4)3" },
+  { name: "硫酸钠", formula: "Na2SO4" },
+  { name: "硫酸铵", formula: "(NH4)2SO4" },
+  { name: "硫酸锌", formula: "ZnSO4" },
+  { name: "硫酸镁", formula: "MgSO4" },
+  { name: "硫酸钡", formula: "BaSO4" },
+  { name: "氯化钾", formula: "KCl" },
+  { name: "氯化铵", formula: "NH4Cl" },
+  { name: "氯化铁", formula: "FeCl3" },
+  { name: "氯化亚铁", formula: "FeCl2" },
+  { name: "氯化铝", formula: "AlCl3" },
+  { name: "氯化钡", formula: "BaCl2" },
+  { name: "氯化锌", formula: "ZnCl2" },
+  { name: "硝酸钾", formula: "KNO3" },
+  { name: "硝酸银", formula: "AgNO3" },
+  { name: "硝酸铵", formula: "NH4NO3" },
+  { name: "高锰酸钾", formula: "KMnO4" },
+  { name: "重铬酸钾", formula: "K2Cr2O7" },
+  { name: "过氧化氢", formula: "H2O2" },
+  { name: "次氯酸钠", formula: "NaClO" },
+  { name: "氧化铁", formula: "Fe2O3" },
+  { name: "四氧化三铁", formula: "Fe3O4" },
+  { name: "氧化铝", formula: "Al2O3" },
+  { name: "氧化钙", formula: "CaO" },
+  { name: "氧化镁", formula: "MgO" },
+  { name: "氧化锌", formula: "ZnO" },
+  { name: "二氧化硅", formula: "SiO2" },
+  { name: "二氧化锰", formula: "MnO2" },
+  { name: "氯酸钾", formula: "KClO3" },
+  { name: "溴化钾", formula: "KBr" },
+  { name: "碘化钾", formula: "KI" },
+  { name: "亚硫酸钠", formula: "Na2SO3" },
+  { name: "硫代硫酸钠", formula: "Na2S2O3" },
+  { name: "磷酸二氢钠", formula: "NaH2PO4" },
+  { name: "磷酸氢二钠", formula: "Na2HPO4" },
+  // ── 有机物 ──
+  { name: "甲烷", formula: "CH4" },
+  { name: "乙烷", formula: "C2H6" },
+  { name: "丙烷", formula: "C3H8" },
+  { name: "乙烯", formula: "C2H4" },
+  { name: "丙烯", formula: "C3H6" },
+  { name: "乙炔", formula: "C2H2" },
+  { name: "乙醇", formula: "C2H5OH" },
+  { name: "甲醇", formula: "CH3OH" },
+  { name: "苯", formula: "C6H6" },
+  { name: "甲苯", formula: "C7H8" },
+  { name: "苯酚", formula: "C6H5OH" },
+  { name: "苯甲酸", formula: "C7H6O2" },
+  { name: "水杨酸", formula: "C7H6O3" },
+  { name: "葡萄糖", formula: "C6H12O6" },
+  { name: "果糖", formula: "C6H12O6" },
+  { name: "蔗糖", formula: "C12H22O11" },
+  { name: "乙酸", formula: "CH3COOH" },
+  { name: "甲酸", formula: "HCOOH" },
+  { name: "草酸", formula: "H2C2O4" },
+  { name: "乳酸", formula: "C3H6O3" },
+  { name: "柠檬酸", formula: "C6H8O7" },
+  { name: "硬脂酸", formula: "C18H36O2" },
+  { name: "油酸", formula: "C18H34O2" },
+  { name: "甲醛", formula: "CH2O" },
+  { name: "乙醛", formula: "CH3CHO" },
+  { name: "丙酮", formula: "C3H6O" },
+  { name: "乙醚", formula: "C4H10O" },
+  { name: "氯仿", formula: "CHCl3" },
+  { name: "四氯化碳", formula: "CCl4" },
+  { name: "尿素", formula: "CO(NH2)2" },
+  { name: "苯乙烯", formula: "C8H8" },
+  { name: "氯乙烯", formula: "C2H3Cl" },
+  { name: "乙酸乙酯", formula: "C4H8O2" },
+  { name: "乙酸钠", formula: "CH3COONa" },
+  { name: "甲酸钠", formula: "HCOONa" },
+  { name: "EDTA", formula: "C10H16N2O8" },
+  { name: "对二甲苯", formula: "C8H10" },
+  { name: "萘", formula: "C10H8" },
+  { name: "硝基苯", formula: "C6H5NO2" },
+  { name: "苯胺", formula: "C6H7N" },
+  { name: "氯苯", formula: "C6H5Cl" },
+  // ── 氨基酸 ──
+  { name: "甘氨酸", formula: "C2H5NO2" },
+  { name: "丙氨酸", formula: "C3H7NO2" },
+  { name: "缬氨酸", formula: "C5H11NO2" },
+  { name: "亮氨酸", formula: "C6H13NO2" },
+  { name: "异亮氨酸", formula: "C6H13NO2" },
+  { name: "苯丙氨酸", formula: "C9H11NO2" },
+  { name: "色氨酸", formula: "C11H12N2O2" },
+  { name: "酪氨酸", formula: "C9H11NO3" },
+  { name: "天冬氨酸", formula: "C4H7NO4" },
+  { name: "谷氨酸", formula: "C5H9NO4" },
+  { name: "赖氨酸", formula: "C6H14N2O2" },
+  { name: "精氨酸", formula: "C6H14N4O2" },
+  { name: "组氨酸", formula: "C6H9N3O2" },
+  { name: "丝氨酸", formula: "C3H7NO3" },
+  { name: "苏氨酸", formula: "C4H9NO3" },
+  { name: "半胱氨酸", formula: "C3H7NO2S" },
+  { name: "蛋氨酸", formula: "C5H11NO2S" },
+  { name: "天冬酰胺", formula: "C4H8N2O3" },
+  { name: "谷氨酰胺", formula: "C5H10N2O3" },
+  { name: "脯氨酸", formula: "C5H9NO2" },
+  // ── 药物 ──
+  { name: "阿司匹林", formula: "C9H8O4" },
+  { name: "布洛芬", formula: "C13H18O2" },
+  { name: "咖啡因", formula: "C8H10N4O2" },
+  { name: "对乙酰氨基酚", formula: "C8H9NO2" },
+  { name: "吡啶", formula: "C5H5N" },
+  { name: "维生素C", formula: "C6H8O6" },
+  { name: "维生素B6", formula: "C8H11NO3" },
+  { name: "叶酸", formula: "C19H19N7O6" },
+  { name: "尼古丁", formula: "C10H14N2" },
+  { name: "麻黄碱", formula: "C10H15NO" },
+  { name: "青霉素G", formula: "C16H18N2O4S" },
+  { name: "阿莫西林", formula: "C16H19N3O5S" },
+  { name: "头孢氨苄", formula: "C16H17N3O4S" },
+  { name: "甲硝唑", formula: "C6H9N3O3" },
+  { name: "奥美拉唑", formula: "C17H19N3O3S" },
+  { name: "二甲双胍", formula: "C4H11N5" },
+  { name: "阿托伐他汀", formula: "C33H35FN2O5" },
+  { name: "吡咯", formula: "C4H5N" },
+  { name: "噻吩", formula: "C4H4S" },
+  // ── 溶剂 / 常用试剂 ──
+  { name: "二甲基亚砜", formula: "C2H6OS" },
+  { name: "N,N-二甲基甲酰胺", formula: "C3H7NO" },
+  { name: "四氢呋喃", formula: "C4H8O" },
+  { name: "乙腈", formula: "C2H3N" },
+  { name: "硝苯地平", formula: "C17H18N2O6" },
+];
+
+const COMPOUND_MAP = new Map<string, string>();
+COMPOUND_LIST.forEach((c) => {
+  COMPOUND_MAP.set(c.name, c.formula);
+});
+
+const QUICK_GROUPS: { label: string; items: { text: string; formula: string }[] }[] = [
+  {
+    label: "无机物",
+    items: [
+      { text: "H₂O", formula: "H2O" },
+      { text: "NaCl", formula: "NaCl" },
+      { text: "H₂SO₄", formula: "H2SO4" },
+      { text: "HCl", formula: "HCl" },
+      { text: "NaOH", formula: "NaOH" },
+      { text: "CO₂", formula: "CO2" },
+      { text: "NH₃", formula: "NH3" },
+      { text: "CaCO₃", formula: "CaCO3" },
+    ],
+  },
+  {
+    label: "有机物",
+    items: [
+      { text: "CH₄", formula: "CH4" },
+      { text: "C₂H₅OH", formula: "C2H5OH" },
+      { text: "苯(C₆H₆)", formula: "C6H6" },
+      { text: "葡萄糖(C₆H₁₂O₆)", formula: "C6H12O6" },
+      { text: "乙酸(CH₃COOH)", formula: "CH3COOH" },
+    ],
+  },
+  {
+    label: "药物",
+    items: [
+      { text: "阿司匹林", formula: "C9H8O4" },
+      { text: "布洛芬", formula: "C13H18O2" },
+      { text: "咖啡因", formula: "C8H10N4O2" },
+      { text: "吡啶", formula: "C5H5N" },
+    ],
+  },
+];
+
+// ═══════════════════════════════════════════════════════════
 // Pie Chart (SVG donut)
 // ═══════════════════════════════════════════════════════════
 
@@ -366,10 +565,41 @@ function ResultRow({ label, value, unit = "", highlight = false }: { label: stri
 function MolarMassCalculator() {
   const [formula, setFormula] = useState("");
   const [error, setError] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const hasChinese = /[一-鿿]/.test(formula);
+
+  const suggestions = useMemo(() => {
+    if (!hasChinese || !formula.trim()) return [];
+    const q = formula.trim();
+    return COMPOUND_LIST.filter((c) => c.name.includes(q)).slice(0, 8);
+  }, [formula, hasChinese]);
+
+  useEffect(() => {
+    setShowDropdown(suggestions.length > 0);
+  }, [suggestions]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const handleSelect = (formulaStr: string) => {
+    setFormula(formulaStr);
+    setShowDropdown(false);
+    setError("");
+  };
 
   const result = useMemo(() => {
     setError("");
     if (!formula.trim()) return null;
+    if (hasChinese) return null;
     const parsed = parseFormula(formula);
     if (!parsed || parsed.length === 0) {
       setError("无法解析化学式，请检查格式（如 H2SO4、Ca(OH)2）");
@@ -378,7 +608,7 @@ function MolarMassCalculator() {
     const merged = mergeElements(parsed);
     const totalMass = merged.reduce((s, m) => s + m.mass, 0);
     return { elements: merged, totalMass };
-  }, [formula]);
+  }, [formula, hasChinese]);
 
   const pieData = useMemo(() => {
     if (!result) return [];
@@ -391,11 +621,46 @@ function MolarMassCalculator() {
 
   return (
     <div>
-      <Label>输入化学式</Label>
-      <div className="flex gap-2">
-        <Input value={formula} onChange={setFormula} placeholder="例如: H2SO4, C6H12O6, Ca(OH)2" />
+      <Label>输入化学式或化合物名称</Label>
+      <div className="relative" ref={containerRef}>
+        <Input value={formula} onChange={setFormula} placeholder="输入化学式或中文名称，如：H₂O 或 吡啶" />
+        {showDropdown && (
+          <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+            {suggestions.map((c) => (
+              <button
+                key={c.name}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-slate-100 last:border-0 flex items-center justify-between transition-colors"
+                onClick={() => handleSelect(c.formula)}
+              >
+                <span className="text-slate-700">{c.name}</span>
+                <span className="font-mono text-xs text-slate-500">{c.formula}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+
+      {/* Quick buttons */}
+      <div className="mt-4 space-y-2">
+        <p className="text-xs text-slate-400">常用物质 <span className="text-slate-300">— 点击快速计算</span></p>
+        {QUICK_GROUPS.map((group) => (
+          <div key={group.label} className="flex items-start gap-2">
+            <span className="text-[11px] font-medium text-slate-400 w-10 shrink-0 mt-0.5">{group.label}</span>
+            <div className="flex flex-wrap gap-1.5 flex-1">
+              {group.items.map((item) => (
+                <button
+                  key={item.text}
+                  onClick={() => handleSelect(item.formula)}
+                  className="text-[11px] px-2.5 py-1 rounded-md border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50 transition-colors"
+                >
+                  {item.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {result && (
         <div className="mt-4 space-y-3">
