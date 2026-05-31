@@ -127,7 +127,7 @@ export const agentResearchAPI = {
       body: JSON.stringify({
         query,
         session_id: sessionId || null,
-        max_steps: maxSteps || 10,
+        max_steps: maxSteps || 25,
       }),
     });
   },

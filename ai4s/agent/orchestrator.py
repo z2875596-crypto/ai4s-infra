@@ -200,6 +200,19 @@ def _build_system_prompt() -> str:
 - 然后逐个调用工具获取所需信息
 - 综合所有结果，给出专业、结构化的最终报告
 
+文献搜索策略（搜索最多 4 次，每次使用不同角度的关键词）：
+1. 第 1 次：搜索核心主题，使用宽泛的学科关键词（如 "ionic liquids applications 2024"）
+2. 第 2 次：搜索最新进展，强调 "recent advances" 和当年年份（如 "ionic liquids recent advances 2025"）
+3. 第 3 次：缩小到具体方向，根据前两次结果的启发（如 "ionic liquids electrochemistry"）
+4. 第 4 次：仅在判断已有文献仍不够全面时才调用，否则跳过
+
+动态终止规则（每次搜索后根据课题类型判断文献覆盖面）：
+- 综述类课题（含"进展"、"综述"、"advances"、"review"等关键词）：收集到 12 篇以上再生成报告
+- 分子性质类课题（含具体化合物名称，如 ibuprofen、aspirin、C6H12O6 等）：收集到 6 篇以上即可
+- 药物/候选分子类课题（含"drug"、"inhibitor"、"候选"、"治疗"等关键词）：收集到 10 篇以上再生成报告
+- 无论哪类课题，超过 15 篇后强制进入报告生成，避免过度搜索
+- 每次搜索后 Agent 自主判断已收集文献是否覆盖了主要研究方向，不足则换不同角度关键词继续下一次搜索
+
 报告要求：
 - 当前年份为 {current_year} 年，引用文献和生成报告时使用正确的年份
 - 使用 Markdown 格式
@@ -500,7 +513,7 @@ class AgentOrchestrator:
         self,
         query: str,
         session_id: str | None = None,
-        max_steps: int = 10,
+        max_steps: int = 25,
     ) -> AsyncGenerator[AgentEvent, None]:
         """Run the ReAct loop, yielding AgentEvent for each step.
 
