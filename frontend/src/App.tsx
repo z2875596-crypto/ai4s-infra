@@ -10,7 +10,7 @@ export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/database" replace />} />
+        <Route path="/" element={<Navigate to="/agent" replace />} />
         <Route path="/database" element={<MolecularDatabase />} />
         <Route path="/literature" element={<LiteratureResearch />} />
         <Route path="/prediction" element={<PropertyPrediction />} />

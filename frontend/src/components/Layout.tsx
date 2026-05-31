@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { FlaskConical, BookOpen, Beaker, Calculator, Brain } from "lucide-react";
+import Logo from "./Logo";
 
 const nav = [
   { to: "/agent", label: "AI 研究助手", icon: Brain },
@@ -15,12 +16,10 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className="w-56 bg-white border-r border-slate-200 flex flex-col shrink-0">
         <div className="p-4 border-b border-slate-100 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-brand-900 flex items-center justify-center">
-            <FlaskConical className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <span className="font-bold text-sm text-slate-800">AI4S 化学平台</span>
-            <p className="text-[10px] text-slate-400 leading-tight">化学信息学基础设施</p>
+          <Logo size="small" />
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-bold text-sm" style={{ color: "#6366F1" }}>鸢见</span>
+            <span className="text-[10px]" style={{ color: "#6366F1" }}>AI4S</span>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">
