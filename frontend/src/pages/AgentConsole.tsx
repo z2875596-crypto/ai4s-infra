@@ -107,8 +107,10 @@ function StepCard({
         <div className={`px-3 pb-3 pt-1 ${bgClass}`}>
           {type === "answer" ? (
             <div className="prose prose-sm max-w-none text-slate-700 prose-headings:text-slate-800 prose-a:text-brand-600 prose-code:text-rose-600 prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:bg-slate-800 prose-pre:text-emerald-300 prose-table:border-collapse">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {content}
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                img: ({ alt }) => <span>{alt}</span>,
+              }}>
+                {sanitizeMarkdown(content)}
               </ReactMarkdown>
             </div>
           ) : type === "observation" && toolName === "search_literature" ? (
@@ -126,9 +128,10 @@ function StepCard({
                       {children}
                     </a>
                   ),
+                  img: ({ alt }) => <span>{alt}</span>,
                 }}
               >
-                {content}
+                {sanitizeMarkdown(content)}
               </ReactMarkdown>
             </div>
           ) : (
@@ -291,6 +294,11 @@ function isLikelySMILES(token: string): boolean {
   return true;
 }
 
+/** Lightweight fallback: strip any mistaken image syntax. */
+function sanitizeMarkdown(md: string): string {
+  return md.replace(/!\[([^\]]*)\]\([^)]*\)/g, '');
+}
+
 /** Replace inline SMILES tokens with markdown image references. */
 function embedSMILES(text: string): string {
   return text.replace(
@@ -417,11 +425,12 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
   // Remove ADMET_DATA line(s) from displayed content
   const cleanContent = content.replace(/ADMET_DATA:\s*\{[^}]+\}\s*/g, "");
 
-  // Convert [DOI: 10.xxxx/xxxx] → clickable markdown links
-  const processed = cleanContent.replace(
-    /\[DOI:\s*(10\.\S+?)\]/g,
-    '[查看原文 →](https://doi.org/$1)'
-  );
+  // Convert DOI references to clickable markdown links
+  const processed = cleanContent
+    // Handle [DOI: 10.xxxx/xxxx] → linked form
+    .replace(/\[DOI:\s*(10\.\S+?)\]/g, '[DOI: $1](https://doi.org/$1)')
+    // Handle plain "DOI: 10.xxxx/xxxx" (not already inside [...])
+    .replace(/(?<!\[)DOI:\s*(10\.\S+?)(?=[\s,.)]|$)/g, '[DOI: $1](https://doi.org/$1)');
 
   // Split by --- to wrap paper sections as cards
   const sections = processed.split(/\n---+\n/).filter(Boolean);
@@ -465,51 +474,49 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
     }
   };
 
-  const markdownComponent = (md: string) => (
-    <div className="prose prose-sm sm:prose-base max-w-none text-slate-700
-      prose-headings:text-slate-800
-      prose-h2:text-lg sm:prose-h2:text-xl prose-h2:font-bold
-        prose-h2:mt-10 prose-h2:mb-6 prose-h2:pt-8
-        prose-h2:border-t prose-h2:border-slate-200
-        prose-h2:pb-2 prose-h2:border-b prose-h2:border-slate-200
-      prose-h3:text-base sm:prose-h3:text-lg prose-h3:font-semibold
-        prose-h3:mt-8 prose-h3:mb-3
-      prose-a:text-brand-600 prose-a:underline
-      prose-code:text-rose-600 prose-code:bg-slate-100
-        prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-        prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
-      prose-pre:bg-slate-800 prose-pre:text-emerald-300
-        prose-pre:rounded-lg prose-pre:p-4 prose-pre:text-xs sm:prose-pre:text-sm
-        prose-pre:overflow-x-auto
-      prose-p:text-sm sm:prose-p:text-base prose-p:leading-relaxed prose-p:mb-4
-      prose-li:text-sm sm:prose-li:text-base prose-li:leading-relaxed prose-li:mb-1
-      prose-strong:font-semibold prose-strong:text-slate-800
-      prose-em:text-slate-600
-    ">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          table: ({ children }) => <ReportTable>{children}</ReportTable>,
-          thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
-          tbody: ({ children }) => <tbody>{children}</tbody>,
-          th: ({ children }) => <ReportTH>{children}</ReportTH>,
-          td: ({ children }) => <ReportTD>{children}</ReportTD>,
-          tr: ({ children }) => {
-            const idx = trIndex++;
-            return <ReportTR index={idx}>{children}</ReportTR>;
-          },
-          img: ({ src, alt }) => {
-            if (src?.startsWith("smiles:")) {
-              return <SmilesImage smiles={decodeURIComponent(src.slice(7))} alt={alt ?? undefined} />;
-            }
-            return <img src={src} alt={alt ?? ""} />;
-          },
-        }}
-      >
-        {embedSMILES(md)}
-      </ReactMarkdown>
-    </div>
-  );
+  const markdownComponent = (md: string) => {
+    console.log('原始报告文本:', md);
+    return (
+      <div className="prose prose-sm sm:prose-base max-w-none text-slate-700
+        prose-headings:text-slate-800
+        prose-h2:text-lg sm:prose-h2:text-xl prose-h2:font-bold
+          prose-h2:mt-10 prose-h2:mb-6 prose-h2:pt-8
+          prose-h2:border-t prose-h2:border-slate-200
+          prose-h2:pb-2 prose-h2:border-b prose-h2:border-slate-200
+        prose-h3:text-base sm:prose-h3:text-lg prose-h3:font-semibold
+          prose-h3:mt-8 prose-h3:mb-3
+        prose-a:text-brand-600 prose-a:underline
+        prose-code:text-rose-600 prose-code:bg-slate-100
+          prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+          prose-code:text-xs prose-code:before:content-none prose-code:after:content-none
+        prose-pre:bg-slate-800 prose-pre:text-emerald-300
+          prose-pre:rounded-lg prose-pre:p-4 prose-pre:text-xs sm:prose-pre:text-sm
+          prose-pre:overflow-x-auto
+        prose-p:text-sm sm:prose-p:text-base prose-p:leading-relaxed prose-p:mb-4
+        prose-li:text-sm sm:prose-li:text-base prose-li:leading-relaxed prose-li:mb-1
+        prose-strong:font-semibold prose-strong:text-slate-800
+        prose-em:text-slate-600
+      ">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            table: ({ children }) => <ReportTable>{children}</ReportTable>,
+            thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
+            tbody: ({ children }) => <tbody>{children}</tbody>,
+            th: ({ children }) => <ReportTH>{children}</ReportTH>,
+            td: ({ children }) => <ReportTD>{children}</ReportTD>,
+            tr: ({ children }) => {
+              const idx = trIndex++;
+              return <ReportTR index={idx}>{children}</ReportTR>;
+            },
+            img: ({ alt }) => <span>{alt}</span>,
+          }}
+        >
+          {embedSMILES(sanitizeMarkdown(md))}
+        </ReactMarkdown>
+      </div>
+    );
+  };
 
   return (
     <div className="bg-white border border-amber-200 rounded-xl shadow-sm overflow-hidden mt-6">
