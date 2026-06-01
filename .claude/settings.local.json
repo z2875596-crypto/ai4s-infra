@@ -85,7 +85,9 @@
       "Bash(tasklist //FI \"PID eq 12888\" //FO TABLE //NH)",
       "Bash(taskkill //F //IM python.exe)",
       "Bash(taskkill //F //IM python3.exe)",
-      "Bash(pkill -f \"vite\")"
+      "Bash(pkill -f \"vite\")",
+      "Bash(node -e \"try{require\\('jspdf'\\);console.log\\('jspdf OK'\\)}catch\\(e\\){console.log\\('jspdf missing'\\)}\")",
+      "Bash(node -e \"try{require\\('html2canvas'\\);console.log\\('html2canvas OK'\\)}catch\\(e\\){console.log\\('html2canvas missing'\\)}\")"
     ]
   }
 }

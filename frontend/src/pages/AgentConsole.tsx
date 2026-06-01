@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, ResponsiveContainer,
@@ -415,6 +417,7 @@ function AdmetRadarChart({ data }: { data: Record<string, number> }) {
 function ResearchReport({ content, topic }: { content: string; topic?: string }) {
   let trIndex = 0;
   const contentRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
 
   // Extract ADMET_DATA: {...} from content
   const admetMatch = content.match(/ADMET_DATA:\s*(\{(?:[^{}]|"[^"]*")+\})/);
@@ -437,40 +440,24 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
 
   const handleExportPDF = async () => {
     if (!contentRef.current) return;
+    setExporting(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const { jsPDF } = await import("jspdf");
-
       const canvas = await html2canvas(contentRef.current, {
         scale: 2,
         useCORS: true,
-        logging: false,
       });
-
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      let heightLeft = pdfHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft > 0) {
-        position -= pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pageHeight;
-      }
-
-      const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = (canvas.height * pageWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
+      const date = new Date().toLocaleDateString("zh-CN");
       const topicStr = (topic || "").slice(0, 10).replace(/[/\\?%*:|"<>]/g, "");
       pdf.save(`鸢见研究报告_${topicStr}_${date}.pdf`);
     } catch (err) {
       console.error("导出 PDF 失败:", err);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -526,10 +513,19 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
         <span className="text-sm font-semibold text-amber-800">研究报告</span>
         <button
           onClick={handleExportPDF}
-          className="ml-2 px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-500 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-1"
+          disabled={exporting}
+          className={`ml-2 px-2.5 py-1 text-xs font-medium rounded-lg border flex items-center gap-1 transition-colors ${
+            exporting
+              ? "border-slate-300 bg-slate-100 text-slate-400 cursor-not-allowed"
+              : "border-blue-500 bg-white text-blue-600 hover:bg-blue-50"
+          }`}
         >
-          <FileText className="w-3 h-3" />
-          导出 PDF
+          {exporting ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <FileText className="w-3 h-3" />
+          )}
+          {exporting ? "导出中…" : "导出 PDF"}
         </button>
         <span className="flex-1" />
         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
