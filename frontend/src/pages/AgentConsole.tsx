@@ -237,8 +237,9 @@ function ReportTR({ children, index }: { children: React.ReactNode; index: numbe
 
 /* ── Research Report Section ───────────────────────────── */
 
-function ResearchReport({ content }: { content: string }) {
+function ResearchReport({ content, topic }: { content: string; topic?: string }) {
   let trIndex = 0;
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Convert [DOI: 10.xxxx/xxxx] → clickable markdown links
   const processed = content.replace(
@@ -248,6 +249,45 @@ function ResearchReport({ content }: { content: string }) {
 
   // Split by --- to wrap paper sections as cards
   const sections = processed.split(/\n---+\n/).filter(Boolean);
+
+  const handleExportPDF = async () => {
+    if (!contentRef.current) return;
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const { jsPDF } = await import("jspdf");
+
+      const canvas = await html2canvas(contentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      let heightLeft = pdfHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const topicStr = (topic || "").slice(0, 10).replace(/[/\\?%*:|"<>]/g, "");
+      pdf.save(`鸢见研究报告_${topicStr}_${date}.pdf`);
+    } catch (err) {
+      console.error("导出 PDF 失败:", err);
+    }
+  };
 
   const markdownComponent = (md: string) => (
     <div className="prose prose-sm sm:prose-base max-w-none text-slate-700
@@ -295,12 +335,19 @@ function ResearchReport({ content }: { content: string }) {
       <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-3 flex items-center gap-2">
         <BookOpen className="w-4 h-4 text-amber-600" />
         <span className="text-sm font-semibold text-amber-800">研究报告</span>
+        <button
+          onClick={handleExportPDF}
+          className="ml-2 px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-500 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-1"
+        >
+          <FileText className="w-3 h-3" />
+          导出 PDF
+        </button>
         <span className="flex-1" />
         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
         <span className="text-xs text-emerald-600 font-medium">生成完成</span>
       </div>
-      {/* Report body — responsive padding & spacing */}
-      <div className="px-4 sm:px-6 md:px-8 py-5 sm:py-7">
+      {/* Report body — ref for PDF export */}
+      <div ref={contentRef} className="px-4 sm:px-6 md:px-8 py-5 sm:py-7">
         {sections.length > 1 ? (
           <div className="space-y-4">
             {sections.map((section, i) => (
@@ -667,7 +714,7 @@ export default function AgentConsole() {
             {/* ── Final research report ── */}
             {lastAnswer && !running && (
               <div ref={reportRef}>
-                <ResearchReport content={lastAnswer.content} />
+                <ResearchReport content={lastAnswer.content} topic={query} />
               </div>
             )}
           </div>
