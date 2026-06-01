@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 from contextlib import asynccontextmanager
 from typing import Any
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -535,6 +537,55 @@ async def predict_molecule(req: PredictRequest):
     if not result.get("valid"):
         raise HTTPException(status_code=400, detail=result.get("error", "Invalid SMILES"))
     return result
+
+
+# ---------------------------------------------------------------------------
+# molecule rendering routes
+# ---------------------------------------------------------------------------
+
+
+@router.get("/molecules/render")
+async def render_molecule(smiles: str = Query(..., description="SMILES string to render")):
+    """Render a SMILES string as a 2D molecular structure SVG using RDKit.
+
+    Returns a JSON object with:
+      - svg_data_uri: base64-encoded SVG data URI (for <img> tags)
+      - name:        IUPAC or common name (from PubChem, may be null)
+    """
+    from rdkit import Chem
+    from rdkit.Chem import Draw, rdDepictor
+
+    mol = Chem.MolFromSmiles(smiles.strip())
+    if mol is None:
+        raise HTTPException(status_code=400, detail=f"Invalid SMILES: {smiles}")
+
+    rdDepictor.Compute2DCoords(mol)
+
+    drawer = Draw.MolDraw2DSVG(400, 300)
+    drawer.DrawMolecule(mol)
+    drawer.FinishDrawing()
+    svg = drawer.GetDrawingText()
+
+    # Try to fetch compound name from PubChem (best-effort)
+    name = None
+    try:
+        url = (
+            f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/"
+            f"{smiles}/property/IUPACName,Title/JSON"
+        )
+        resp = await httpx.AsyncClient(timeout=5).get(url)
+        if resp.status_code == 200:
+            props = resp.json().get("PropertyTable", {}).get("Properties", [])
+            if props:
+                name = props[0].get("Title") or props[0].get("IUPACName")
+    except Exception:
+        pass
+
+    svg_b64 = base64.b64encode(svg.encode()).decode()
+    return {
+        "svg_data_uri": f"data:image/svg+xml;base64,{svg_b64}",
+        "name": name,
+    }
 
 
 # ---------------------------------------------------------------------------

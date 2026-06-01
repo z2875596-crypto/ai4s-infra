@@ -235,6 +235,105 @@ function ReportTR({ children, index }: { children: React.ReactNode; index: numbe
   );
 }
 
+/* ── SMILES → 2D Structure ──────────────────────────── */
+
+const SMILES_CACHE = new Map<string, { svg_data_uri: string; name: string | null }>();
+
+/** Words that look like SMILES tokens but aren't. */
+const COMMON_WORDS = new Set([
+  'the','and','that','this','with','from','have','been','were','which','their',
+  'first','after','where','could','would','should','result','because','through',
+  'between','without','analysis','compound','molecule','structure','therefore',
+  'however','number','also','more','some','other','about','each','than','then',
+  'these','those','while','there','during','before','above','below','under',
+  'again','further','moreover','otherwise','although','finally','indeed',
+  'instead','meanwhile','nevertheless','currently','typically','generally',
+  'specifically','significantly','Carbon','Oxygen','Nitrogen','Sulfur',
+  'Chlorine','Bromine','Iodine','Fluorine','Hydrogen','Helium','Lithium',
+  'Beryllium','Boron','Sodium','Magnesium','Aluminum','Silicon','Phosphorus',
+  'Potassium','Calcium','Water','Methane','Ethane','Propane','Butane',
+  'Pentane','Hexane','Methanol','Ethanol','Acetone','Benzene','Toluene',
+  'Protein','Enzyme','Catalyst','Polymer','Isomer','Formula','Weight',
+  'Density','Volume','Length','Figure','Table','Where','Which','There',
+  'These','Those','While','Since','Until','About','After','Before','During',
+  'Without','Within','Single','Double','Triple','Aromatic','Aliphatic',
+  'Primary','Secondary','Tertiary','Molecular','Electronic','Structural',
+  'Chemical','Physical','Biological','Clinical','Medical','Synthesis',
+  'Reaction','Product','Reactant','Solvent','Ligand','Substrate','Inhibitor',
+  'Oxidation','Reduction','Hydrolysis','Condensation','Normal','Standard',
+  'Control','Sample','Total','Partial','Complex','Simple','Pure','Impure',
+  'Protein','Enzyme','Catalyst','Polymer','Isomer',
+]);
+
+function isLikelySMILES(token: string): boolean {
+  if (token.length < 2 || token.length > 80) return false;
+  if (/^\d+$/.test(token)) return false;
+  if (COMMON_WORDS.has(token) || COMMON_WORDS.has(token.toLowerCase())) return false;
+  if (!/[A-Z]/.test(token)) return false; // must start with element symbol
+  // Must have SMILES-specific features: digit, paren, bracket, bond
+  if (!/\d/.test(token) && !/[()\[\]]/.test(token) && !/[=#@]/.test(token)) {
+    if (token.length > 4) return false;
+    if (!/^[A-Z][a-z]?[A-Z][a-z]?[A-Z]?[a-z]?$/.test(token)) return false;
+  }
+  return true;
+}
+
+/** Replace inline SMILES tokens with markdown image references. */
+function embedSMILES(text: string): string {
+  return text.replace(
+    /(^|[\s,;:(\[])([A-Z][a-z]?(?:[A-Za-z0-9@+\-\[\]\(\)\\\/%=#,:.]{1,78}))(?=[\s,;:.!?)\]\]\n]|$)/g,
+    (match, prefix, token) => {
+      if (isLikelySMILES(token)) {
+        return `${prefix}![${token}](smiles:${encodeURIComponent(token)})`;
+      }
+      return match;
+    }
+  );
+}
+
+/** Render a SMILES string as 2D molecular structure fetched from the backend. */
+function SmilesImage({ smiles }: { smiles: string }) {
+  const [data, setData] = useState<{ svg_data_uri: string; name: string | null } | null>(
+    () => SMILES_CACHE.get(smiles) ?? null
+  );
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(!data);
+
+  useEffect(() => {
+    if (data) return;
+    const cached = SMILES_CACHE.get(smiles);
+    if (cached) { setData(cached); setLoading(false); return; }
+    fetch(`/api/v1/data/molecules/render?smiles=${encodeURIComponent(smiles)}`)
+      .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+      .then(result => { SMILES_CACHE.set(smiles, result); setData(result); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, [smiles, data]);
+
+  if (loading) return (
+    <span className="inline-flex items-center gap-1 text-xs text-slate-400 mx-1">
+      <span className="w-3 h-3 rounded-full border-2 border-slate-300 border-t-transparent animate-spin" />
+      加载分子…
+    </span>
+  );
+  if (error) return <code className="text-xs text-slate-500">{smiles}</code>;
+
+  return (
+    <div className="inline-flex flex-col items-center mx-1 align-middle">
+      <img
+        src={data!.svg_data_uri}
+        alt={smiles}
+        className="border border-slate-200 rounded bg-white"
+        style={{ width: 200 }}
+      />
+      {data!.name && (
+        <span className="text-[10px] text-slate-500 mt-0.5 text-center leading-tight max-w-[200px] truncate" title={data!.name}>
+          {data!.name}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /* ── Research Report Section ───────────────────────────── */
 
 function ResearchReport({ content, topic }: { content: string; topic?: string }) {
@@ -322,9 +421,15 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
             const idx = trIndex++;
             return <ReportTR index={idx}>{children}</ReportTR>;
           },
+          img: ({ src, alt }) => {
+            if (src?.startsWith("smiles:")) {
+              return <SmilesImage smiles={decodeURIComponent(src.slice(7))} />;
+            }
+            return <img src={src} alt={alt ?? ""} />;
+          },
         }}
       >
-        {md}
+        {embedSMILES(md)}
       </ReactMarkdown>
     </div>
   );
