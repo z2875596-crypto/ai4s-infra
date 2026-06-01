@@ -69,6 +69,15 @@ async def lifespan(app: FastAPI):
     inactive = [m for m, ok in _available_modules.items() if not ok]
     if inactive:
         logger.warning("Inactive modules (missing deps): %s", ", ".join(inactive))
+    # ── DEBUG: print all registered routes ──
+    routes = sorted(
+        f"{','.join(m for m in r.methods if m != 'HEAD' if m != 'OPTIONS'):30s} {r.path}"
+        for r in app.routes
+        if hasattr(r, "methods") and r.path
+    )
+    logger.info("=== Registered routes (%d) ===", len(routes))
+    for line in routes:
+        print(line)
     yield
     logger.info("AI4S Infrastructure shutting down")
 

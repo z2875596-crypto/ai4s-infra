@@ -53,30 +53,39 @@ const STEP_COLORS: Record<string, { icon: React.ComponentType<{ className?: stri
 /* ── Step Card (colored left border + collapse) ────────── */
 
 function StepCard({
-  type, content, toolName, idx, defaultExpanded,
+  type, content, toolName, idx, defaultExpanded, isFollowUp,
 }: {
   type: string;
   content: string;
   toolName?: string | null;
   idx: number;
   defaultExpanded: boolean;
+  isFollowUp?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(!defaultExpanded);
   const colors = STEP_COLORS[type] || STEP_COLORS.thought;
   const Icon = colors.icon;
+  const borderClass = isFollowUp ? "border-l-purple-600" : colors.border;
+  const bgClass = isFollowUp ? "bg-purple-50/60" : colors.bg;
+  const dotClass = isFollowUp ? "bg-purple-600" : colors.dot;
 
   return (
-    <div className={`rounded-r-lg border-l-4 ${colors.border} bg-white border border-slate-200 border-l-4 shadow-sm overflow-hidden`}>
+    <div className={`rounded-r-lg border-l-4 ${borderClass} bg-white border border-slate-200 border-l-4 shadow-sm overflow-hidden`}>
       {/* Header — click to toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 transition-colors text-left"
       >
-        <span className={`w-1.5 h-1.5 rounded-full ${colors.dot} shrink-0`} />
+        <span className={`w-1.5 h-1.5 rounded-full ${dotClass} shrink-0`} />
         <Icon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
         <span className="text-xs font-semibold text-slate-600">
           {colors.label} #{idx}
         </span>
+        {isFollowUp && (
+          <span className="text-[10px] bg-purple-100 border border-purple-200 rounded px-1.5 py-0.5 text-purple-600 font-medium shrink-0">
+            追问
+          </span>
+        )}
         {toolName && (
           <span className="text-[10px] bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-500 font-mono shrink-0">
             {toolName}
@@ -91,7 +100,7 @@ function StepCard({
 
       {/* Body */}
       {!collapsed && (
-        <div className={`px-3 pb-3 pt-1 ${colors.bg}`}>
+        <div className={`px-3 pb-3 pt-1 ${bgClass}`}>
           {type === "answer" ? (
             <div className="prose prose-sm max-w-none text-slate-700 prose-headings:text-slate-800 prose-a:text-brand-600 prose-code:text-rose-600 prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:bg-slate-800 prose-pre:text-emerald-300 prose-table:border-collapse">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -482,6 +491,9 @@ export default function AgentConsole() {
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [followUpMode, setFollowUpMode] = useState(false);
+  const [followUpBaseCount, setFollowUpBaseCount] = useState(0);
+  const [currentSessionTitle, setCurrentSessionTitle] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -529,6 +541,9 @@ export default function AgentConsole() {
     setEvents([]);
     setError("");
     setCurrentSessionId(session.session_id);
+    setCurrentSessionTitle(session.title);
+    setFollowUpBaseCount(0);
+    setFollowUpMode(true);
     setEvents(
       session.steps.map((s: AgentStep, i: number) => ({
         type: s.step_type,
@@ -545,14 +560,30 @@ export default function AgentConsole() {
     if (!q || running) return;
 
     setRunning(true);
-    setEvents([]);
     setError("");
-    setCurrentSessionId(null);
+
+    const isFollowUp = followUpMode && currentSessionId !== null;
+
+    if (isFollowUp) {
+      // Keep existing events — new SSE events will be appended
+      setFollowUpBaseCount(events.length);
+    } else {
+      setEvents([]);
+      setCurrentSessionId(null);
+      setFollowUpMode(false);
+      setFollowUpBaseCount(0);
+      setCurrentSessionTitle("");
+    }
 
     abortRef.current = new AbortController();
 
     try {
-      const response = await agentResearchAPI.run(q);
+      const response = await agentResearchAPI.run(
+        q,
+        isFollowUp ? currentSessionId! : undefined,
+        25,
+        isFollowUp,
+      );
       if (!response.ok) {
         const text = await response.text();
         throw new Error(`API 错误 (${response.status}): ${text}`);
@@ -614,6 +645,9 @@ export default function AgentConsole() {
     setEvents([]);
     setError("");
     setCurrentSessionId(null);
+    setFollowUpMode(false);
+    setFollowUpBaseCount(0);
+    setCurrentSessionTitle("");
     setQuery("");
   };
 
@@ -752,6 +786,27 @@ export default function AgentConsole() {
             </p>
           </div>
 
+          {/* ── Follow-up indicator ── */}
+          {followUpMode && !running && events.length > 0 && (
+            <div className="px-3 py-2 bg-purple-50/40 border-b border-purple-100">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
+                <span className="text-purple-700 font-medium">
+                  基于「{currentSessionTitle.slice(0, 20)}{currentSessionTitle.length > 20 ? "…" : ""}」继续研究
+                </span>
+                <span className="text-purple-400">—</span>
+                <span className="text-purple-500">输入新问题后将携带已有研究结论作为上下文</span>
+                <span className="flex-1" />
+                <button
+                  onClick={handleNewSession}
+                  className="text-purple-500 hover:text-purple-700 underline font-medium"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Scrollable display */}
           <div ref={scrollRef} className="flex-1 overflow-auto p-4 space-y-2.5">
             {/* Empty state */}
@@ -788,6 +843,7 @@ export default function AgentConsole() {
                     toolName={evt.tool_name}
                     idx={evt.step_index}
                     defaultExpanded={evt.type === "error" || isLatest}
+                    isFollowUp={followUpBaseCount > 0 && i >= followUpBaseCount}
                   />
                 );
               })}

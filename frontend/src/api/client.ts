@@ -119,15 +119,18 @@ export const hpcAPI = {
 // ── Agent Research ──────────────────────────────────────
 
 export const agentResearchAPI = {
-  run: (query: string, sessionId?: string, maxSteps?: number) => {
+  run: (query: string, sessionId?: string, maxSteps?: number, followUp?: boolean) => {
     const base = "/api/agent";
-    return fetch(`${base}/run`, {
+    const url = `${base}/run`;
+    console.log('请求URL:', url);
+    return fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query,
         session_id: sessionId || null,
         max_steps: maxSteps || 25,
+        follow_up: followUp || false,
       }),
     });
   },

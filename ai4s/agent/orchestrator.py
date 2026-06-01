@@ -27,6 +27,20 @@ from ai4s.common.logging import get_logger
 logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
+# Safe printing for Unicode-unfriendly consoles (Windows GBK etc.)
+# ---------------------------------------------------------------------------
+
+
+def _safe_print_json(text: str) -> None:
+    import sys
+    enc = sys.stdout.encoding or "utf-8"
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        print(text.encode(enc, errors="replace").decode(enc))
+
+
+# ---------------------------------------------------------------------------
 # DeepSeek client configuration
 # ---------------------------------------------------------------------------
 
@@ -514,30 +528,62 @@ class AgentOrchestrator:
         query: str,
         session_id: str | None = None,
         max_steps: int = 25,
+        follow_up: bool = False,
     ) -> AsyncGenerator[AgentEvent, None]:
         """Run the ReAct loop, yielding AgentEvent for each step.
 
-        The caller should consume this async generator and forward events
-        as SSE messages to the frontend.
+        When follow_up=True and session_id is provided, the existing session's
+        last answer is loaded as context and new steps are appended to the same
+        session rather than creating a new one.
         """
         if not self.api_key:
             yield AgentEvent(type="error", content="DeepSeek API key 未配置。请设置环境变量 DEEPSEEK_API_KEY。")
             return
 
-        # Create or load session
-        if session_id is None:
-            session_id = uuid.uuid4().hex[:12]
-        session = self.memory.create_session(
-            session_id=session_id,
-            title=query[:60],
-            query=query,
-        )
+        # ── Session resolution ─────────────────────────────────
+        previous_answer: str | None = None
+        system_prompt = _build_system_prompt()
 
-        yield AgentEvent(type="thought", content=f"开始研究: {query}", step_index=0)
+        if follow_up and session_id is not None:
+            existing = self.memory.get_session(session_id)
+            if existing is not None:
+                # Extract last answer from history as context
+                for step in reversed(existing.steps):
+                    if step.step_type == "answer":
+                        previous_answer = step.content
+                        break
+                if previous_answer:
+                    truncated = (
+                        previous_answer[:2000]
+                        if len(previous_answer) > 2000
+                        else previous_answer
+                    )
+                    system_prompt += (
+                        f"\n\n【历史研究背景】基于以下已有的研究发现：\n"
+                        f"{truncated}\n\n"
+                        f"请在此基础上回答用户的新问题。"
+                    )
+                yield AgentEvent(
+                    type="thought",
+                    content=f"基于已有研究继续分析: {query}",
+                    step_index=0,
+                )
+            else:
+                follow_up = False  # session gone, fallback to fresh
+
+        if not follow_up:
+            if session_id is None:
+                session_id = uuid.uuid4().hex[:12]
+            self.memory.create_session(
+                session_id=session_id,
+                title=query[:60],
+                query=query,
+            )
+            yield AgentEvent(type="thought", content=f"开始研究: {query}", step_index=0)
 
         # Build message history
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": _build_system_prompt()},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": query},
         ]
 
@@ -556,7 +602,7 @@ class AgentOrchestrator:
                 "max_tokens": 4096,
             }
             print("\n=== DeepSeek API 请求体 ===")
-            print(json.dumps(request_body, ensure_ascii=False, indent=2))
+            _safe_print_json(json.dumps(request_body, ensure_ascii=False, indent=2))
             print("=== 请求体结束 ===\n")
             try:
                 resp = await client.post(
@@ -583,7 +629,7 @@ class AgentOrchestrator:
 
             choice = result["choices"][0]
             msg = choice["message"]
-            print(f"\n=== DeepSeek 返回的 message ===\n{json.dumps(msg, ensure_ascii=False, indent=2)}\n=== message 结束 ===")
+            _safe_print_json(f"\n=== DeepSeek 返回的 message ===\n{json.dumps(msg, ensure_ascii=False, indent=2)}\n=== message 结束 ===")
 
             # ── Check if LLM wants to call a tool ────────────
             if msg.get("tool_calls"):

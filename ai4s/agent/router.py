@@ -38,6 +38,7 @@ class AgentRunRequest(BaseModel):
     query: str = Field(..., description="研究问题或任务描述", min_length=1, max_length=5000)
     session_id: str | None = Field(None, description="继续已有会话（可选）")
     max_steps: int = Field(10, ge=1, le=30, description="最大推理步数")
+    follow_up: bool = Field(False, description="是否为追问模式（携带历史结论作为上下文）")
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +70,7 @@ async def agent_run(req: AgentRunRequest):
                 query=req.query,
                 session_id=req.session_id,
                 max_steps=req.max_steps,
+                follow_up=req.follow_up,
             ):
                 data = json.dumps({
                     "type": event.type,
