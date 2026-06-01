@@ -2,6 +2,10 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  Radar, ResponsiveContainer,
+} from "recharts";
+import {
   Send, Brain, Wrench, Eye, FileText, AlertCircle, Loader2,
   History, Trash2, ChevronDown, ChevronRight,
   Zap, BookOpen, CheckCircle2,
@@ -301,7 +305,7 @@ function embedSMILES(text: string): string {
 }
 
 /** Render a SMILES string as 2D molecular structure fetched from the backend. */
-function SmilesImage({ smiles }: { smiles: string }) {
+function SmilesImage({ smiles, alt }: { smiles: string; alt?: string }) {
   const [data, setData] = useState<{ svg_data_uri: string; name: string | null } | null>(
     () => SMILES_CACHE.get(smiles) ?? null
   );
@@ -324,7 +328,7 @@ function SmilesImage({ smiles }: { smiles: string }) {
       加载分子…
     </span>
   );
-  if (error) return <code className="text-xs text-slate-500">{smiles}</code>;
+  if (error) return <code className="text-xs text-slate-500">{alt || smiles}</code>;
 
   return (
     <div className="inline-flex flex-col items-center mx-1 align-middle">
@@ -343,14 +347,78 @@ function SmilesImage({ smiles }: { smiles: string }) {
   );
 }
 
+/* ── ADMET RadarChart ──────────────────────────────────── */
+
+const ADMET_COLORS = {
+  吸收: "#6366f1",  分布: "#8b5cf6",  代谢: "#ec4899",
+  排泄: "#f59e0b",  毒性: "#ef4444",  类药性: "#10b981",
+};
+
+function AdmetRadarChart({ data }: { data: Record<string, number> }) {
+  const chartData = Object.entries(data).map(([key, value]) => ({
+    property: key,
+    value,
+    fill: ADMET_COLORS[key as keyof typeof ADMET_COLORS] || "#6366f1",
+  }));
+
+  return (
+    <div className="my-6 bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+        ADMET 性质雷达图
+      </h3>
+      <ResponsiveContainer width="100%" height={320}>
+        <RadarChart data={chartData} cx="50%" cy="50%" outerRadius="70%">
+          <PolarGrid stroke="#e2e8f0" />
+          <PolarAngleAxis
+            dataKey="property"
+            tick={{ fontSize: 12, fill: "#64748b" }}
+          />
+          <PolarRadiusAxis
+            angle={30}
+            domain={[0, 100]}
+            tick={{ fontSize: 10, fill: "#94a3b8" }}
+          />
+          <Radar
+            name="ADMET"
+            dataKey="value"
+            stroke="#6366f1"
+            fill="#6366f1"
+            fillOpacity={0.25}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+      {/* Legend + scores */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">
+        {chartData.map((d) => (
+          <div key={d.property} className="flex items-center gap-1.5 text-xs text-slate-600">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.fill }} />
+            <span>{d.property}</span>
+            <span className="font-semibold">{d.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Research Report Section ───────────────────────────── */
 
 function ResearchReport({ content, topic }: { content: string; topic?: string }) {
   let trIndex = 0;
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Extract ADMET_DATA: {...} from content
+  const admetMatch = content.match(/ADMET_DATA:\s*(\{(?:[^{}]|"[^"]*")+\})/);
+  const admetData: Record<string, number> | null = admetMatch
+    ? (() => { try { return JSON.parse(admetMatch[1]); } catch { return null; } })()
+    : null;
+
+  // Remove ADMET_DATA line(s) from displayed content
+  const cleanContent = content.replace(/ADMET_DATA:\s*\{[^}]+\}\s*/g, "");
+
   // Convert [DOI: 10.xxxx/xxxx] → clickable markdown links
-  const processed = content.replace(
+  const processed = cleanContent.replace(
     /\[DOI:\s*(10\.\S+?)\]/g,
     '[查看原文 →](https://doi.org/$1)'
   );
@@ -432,7 +500,7 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
           },
           img: ({ src, alt }) => {
             if (src?.startsWith("smiles:")) {
-              return <SmilesImage smiles={decodeURIComponent(src.slice(7))} />;
+              return <SmilesImage smiles={decodeURIComponent(src.slice(7))} alt={alt ?? undefined} />;
             }
             return <img src={src} alt={alt ?? ""} />;
           },
@@ -476,6 +544,7 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
         ) : (
           markdownComponent(processed)
         )}
+        {admetData && <AdmetRadarChart data={admetData} />}
       </div>
     </div>
   );
