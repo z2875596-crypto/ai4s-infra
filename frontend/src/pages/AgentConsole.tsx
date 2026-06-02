@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   Radar, ResponsiveContainer,
@@ -416,7 +414,6 @@ function AdmetRadarChart({ data }: { data: Record<string, number> }) {
 
 function ResearchReport({ content, topic }: { content: string; topic?: string }) {
   let trIndex = 0;
-  const contentRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
   // Extract ADMET_DATA: {...} from content
@@ -438,24 +435,27 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
   // Split by --- to wrap paper sections as cards
   const sections = processed.split(/\n---+\n/).filter(Boolean);
 
-  const handleExportPDF = async () => {
-    if (!contentRef.current) return;
+  const handleExportDocx = async () => {
     setExporting(true);
     try {
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
-        useCORS: true,
+      const resp = await fetch("/api/agent/export-docx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: processed, topic }),
       });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = (canvas.height * pageWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
-      const date = new Date().toLocaleDateString("zh-CN");
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
       const topicStr = (topic || "").slice(0, 10).replace(/[/\\?%*:|"<>]/g, "");
-      pdf.save(`鸢见研究报告_${topicStr}_${date}.pdf`);
+      a.download = `鸢见研究报告_${topicStr}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("导出 PDF 失败:", err);
+      console.error("导出 Word 失败:", err);
     } finally {
       setExporting(false);
     }
@@ -512,7 +512,7 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
         <BookOpen className="w-4 h-4 text-amber-600" />
         <span className="text-sm font-semibold text-amber-800">研究报告</span>
         <button
-          onClick={handleExportPDF}
+          onClick={handleExportDocx}
           disabled={exporting}
           className={`ml-2 px-2.5 py-1 text-xs font-medium rounded-lg border flex items-center gap-1 transition-colors ${
             exporting
@@ -525,14 +525,14 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
           ) : (
             <FileText className="w-3 h-3" />
           )}
-          {exporting ? "导出中…" : "导出 PDF"}
+          {exporting ? "导出中…" : "导出 Word"}
         </button>
         <span className="flex-1" />
         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
         <span className="text-xs text-emerald-600 font-medium">生成完成</span>
       </div>
-      {/* Report body — ref for PDF export */}
-      <div ref={contentRef} className="px-4 sm:px-6 md:px-8 py-5 sm:py-7">
+      {/* Report body */}
+      <div className="px-4 sm:px-6 md:px-8 py-5 sm:py-7">
         {sections.length > 1 ? (
           <div className="space-y-4">
             {sections.map((section, i) => (
