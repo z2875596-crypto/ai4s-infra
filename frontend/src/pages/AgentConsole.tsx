@@ -219,8 +219,8 @@ function SessionList({
 
 function ReportTable({ children }: { children: React.ReactNode }) {
   return (
-    <div className="my-5 overflow-x-auto rounded-lg border border-slate-300 shadow-sm">
-      <table className="min-w-full border-collapse text-xs sm:text-sm">
+    <div className="my-5 overflow-x-auto">
+      <table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
         {children}
       </table>
     </div>
@@ -229,7 +229,7 @@ function ReportTable({ children }: { children: React.ReactNode }) {
 
 function ReportTH({ children }: { children: React.ReactNode }) {
   return (
-    <th className="border border-slate-300 bg-slate-100 px-3 sm:px-4 py-2 sm:py-2.5 text-left text-xs sm:text-sm font-semibold text-slate-700 whitespace-nowrap">
+    <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 'bold', border: 'none', background: 'transparent' }}>
       {children}
     </th>
   );
@@ -237,18 +237,14 @@ function ReportTH({ children }: { children: React.ReactNode }) {
 
 function ReportTD({ children }: { children: React.ReactNode }) {
   return (
-    <td className="border border-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-600">
+    <td style={{ padding: '8px 12px', border: 'none' }}>
       {children}
     </td>
   );
 }
 
 function ReportTR({ children, index }: { children: React.ReactNode; index: number }) {
-  return (
-    <tr className={index % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-      {children}
-    </tr>
-  );
+  return <tr>{children}</tr>;
 }
 
 /* ── SMILES → 2D Structure ──────────────────────────── */
@@ -488,8 +484,8 @@ function ResearchReport({ content, topic }: { content: string; topic?: string })
           remarkPlugins={[remarkGfm]}
           components={{
             table: ({ children }) => <ReportTable>{children}</ReportTable>,
-            thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
-            tbody: ({ children }) => <tbody>{children}</tbody>,
+            thead: ({ children }) => <thead style={{ borderTop: '2px solid #333', borderBottom: '1px solid #333' }}>{children}</thead>,
+            tbody: ({ children }) => <tbody style={{ borderBottom: '2px solid #333' }}>{children}</tbody>,
             th: ({ children }) => <ReportTH>{children}</ReportTH>,
             td: ({ children }) => <ReportTD>{children}</ReportTD>,
             tr: ({ children }) => {
