@@ -33,12 +33,11 @@
 
 ## 截图
 
-<!-- TODO: 替换为实际截图 -->
-![AI 研究助手界面](docs/screenshots/agent-console.png)
-![分子数据库](docs/screenshots/molecular-database.png)
-![文献调研](docs/screenshots/literature-search.png)
-![性质预测](docs/screenshots/property-prediction.png)
-![化学计算工具箱](docs/screenshots/chemistry-toolbox.png)
+![AI 研究助手界面](docs/screenshots/agent.png)
+![分子数据库](docs/screenshots/molecules.png)
+![文献调研](docs/screenshots/literature.png)
+![性质预测](docs/screenshots/prediction.png)
+![化学计算工具箱](docs/screenshots/tools.png)
 
 ---
 
